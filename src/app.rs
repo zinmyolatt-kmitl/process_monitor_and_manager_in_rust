@@ -306,6 +306,26 @@ impl Application for ProcMonApp {
 
     fn view(&self) -> Element<'_, Self::Message> {
         // Controls row
+        // let controls = row![
+        //     text_input("Filter (name or PID)", &self.settings.filter)
+        //         .on_input(Message::FilterChanged)
+        //         .width(260.0),
+        //     Space::with_width(10.0),
+        //     text_input("Start command…", &self.settings.cmd_to_start)
+        //         .on_input(Message::StartChanged)
+        //         .on_submit(Message::StartNow) // ✅ Added this
+        //         .width(Length::FillPortion(2)),
+        //     button("Start").on_press(Message::StartNow), // ✅ Click still works too
+        //     Space::with_width(Length::Fill),
+        //     checkbox("CPU alerts", self.settings.alerts_on_cpu)
+        //         .on_toggle(Message::CpuAlertChanged),
+        //     Space::with_width(10.0),
+        //     checkbox("Mem alerts", self.settings.alerts_on_mem)
+        //         .on_toggle(Message::MemAlertChanged),
+        // ]
+        // .spacing(10)
+        // .align_items(Alignment::Center);
+
         let controls = row![
             text_input("Filter (name or PID)", &self.settings.filter)
                 .on_input(Message::FilterChanged)
@@ -313,15 +333,9 @@ impl Application for ProcMonApp {
             Space::with_width(10.0),
             text_input("Start command…", &self.settings.cmd_to_start)
                 .on_input(Message::StartChanged)
-                .on_submit(Message::StartNow) // ✅ Added this
+                .on_submit(Message::StartNow)
                 .width(Length::FillPortion(2)),
-            button("Start").on_press(Message::StartNow), // ✅ Click still works too
-            Space::with_width(Length::Fill),
-            checkbox("CPU alerts", self.settings.alerts_on_cpu)
-                .on_toggle(Message::CpuAlertChanged),
-            Space::with_width(10.0),
-            checkbox("Mem alerts", self.settings.alerts_on_mem)
-                .on_toggle(Message::MemAlertChanged),
+            button("Start").on_press(Message::StartNow),
         ]
         .spacing(10)
         .align_items(Alignment::Center);
@@ -329,20 +343,18 @@ impl Application for ProcMonApp {
 
         // Header row
         let header = container(
-                row![
-                    container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                    container(sortable("Name", SortKey::Name, &self.settings))
-                        .width(Length::FillPortion(3)),
-                    container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-                    container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-                    container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-                    container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-                    container(text("Actions").size(14)).width(Length::FillPortion(2)),
-                ]
-                .spacing(20),
-            )
-            .padding([12, 10]);
-
+            row![
+                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                container(text("Actions").size(18)).width(Length::FillPortion(2)).center_x(),
+            ]
+            .spacing(20)
+        )
+        .padding([12, 10]);
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
@@ -400,19 +412,77 @@ impl Application for ProcMonApp {
         .height(Length::FillPortion(1));
 
         // Suggestions
+        // let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
+        //     container(text("No suggestions. System looks calm.").size(16))
+        //         .padding(8)
+        //         .into()
+        // } else {
+        //     let items = self.suggestions.iter().map(|s| {
+        //         container(column![text(&s.title).size(16), text(&s.detail).size(14)])
+        //             .padding(8)
+        //             .into()
+        //     });
+            
+        //     // Wrap in scrollable with fixed height (approximately 3 items worth)
+        //     container(
+        // scrollable(column(items).spacing(8))
+        //             .height(Length::Fixed(180.0))
+        //             .width(Length::Fill)  // Make scrollable take full width
+        //     )
+        //     .width(Length::Fill)  // Make container take full width
+        //     .into()
+        // };
+
+        let alert_controls = row![
+            text("Alerts:").size(14),
+            Space::with_width(10.0),
+            checkbox("CPU", self.settings.alerts_on_cpu)
+                .on_toggle(Message::CpuAlertChanged),
+            Space::with_width(10.0),
+            checkbox("Memory", self.settings.alerts_on_mem)
+                .on_toggle(Message::MemAlertChanged),
+        ]
+        .align_items(Alignment::Center);
+
         let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-            text("No suggestions. System looks calm.").size(16).into()
+            container(text("No suggestions. System looks calm.").size(16))
+                .padding(8)
+                .into()
         } else {
             let items = self.suggestions.iter().map(|s| {
                 container(column![text(&s.title).size(16), text(&s.detail).size(14)])
                     .padding(8)
                     .into()
             });
-            column(items).spacing(8).into()
+            
+            // Wrap in scrollable with fixed height and full width
+            container(
+                scrollable(column(items).spacing(8))
+                    .height(Length::Fixed(180.0))
+                    .width(Length::Fill)  // Make scrollable take full width
+            )
+            .width(Length::Fill)  // Make container take full width
+            .into()
         };
 
-        container(
-            column![
+    //     container(
+    // column![
+    //             controls, 
+    //             Space::with_height(8),
+    //             header, 
+    //             Space::with_height(8),
+    //             table, 
+    //             Space::with_height(16),
+    //             graphs, 
+    //             Space::with_height(8), 
+    //             sugg
+    //         ]
+    //         .spacing(8)
+    //         .padding(12)
+    //     )
+    //     .into()
+    container(
+    column![
                 controls, 
                 Space::with_height(8),
                 header, 
@@ -420,7 +490,9 @@ impl Application for ProcMonApp {
                 table, 
                 Space::with_height(16),
                 graphs, 
-                Space::with_height(8), 
+                Space::with_height(8),
+                alert_controls,  // Alert checkboxes here
+                Space::with_height(4),
                 sugg
             ]
             .spacing(8)
