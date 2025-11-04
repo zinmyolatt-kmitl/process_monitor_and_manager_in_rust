@@ -537,7 +537,7 @@ fn make_suggestions(rows: &[ProcRow], total_cpu: f32, mem_pct: f32) -> Vec<Sugge
             });
         }
     }
-    if mem_pct > 90.0 {
+    if mem_pct > 20.0 {
         if let Some(top) = rows.iter().max_by_key(|p| p.mem_bytes) {
             out.push(Suggestion {
                 title: format!(
