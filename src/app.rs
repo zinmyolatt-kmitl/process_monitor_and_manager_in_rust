@@ -89,13 +89,14 @@ struct LowerButton;
 impl button::StyleSheet for LowerButton {
     type Style = iced::Theme;
     fn active(&self, _: &Self::Style) -> button::Appearance {
-        self.base(Color::from_rgb(0.45, 0.45, 0.45))
+        self.base(Color::from_rgb(0.65, 0.65, 0.68)) // lighter gray
     }
     fn hovered(&self, _: &Self::Style) -> button::Appearance {
-        self.base(Color::from_rgb(0.55, 0.55, 0.55))
+        self.base(Color::from_rgb(0.75, 0.75, 0.78)) // slightly brighter on hover
     }
 }
 impl RoundedBase for LowerButton {}
+
 
 
 
@@ -365,14 +366,33 @@ impl Application for ProcMonApp {
                     text(fmt_bytes(p.mem_bytes)).width(110.0),
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
                     text(fmt_bytes(p.write_bps) + "/s").width(110.0),
-                    row![
-                        button("Kill").on_press(Message::Kill(p.pid)),
-                        button("Suspend").on_press(Message::Suspend(p.pid)),
-                        button("Resume").on_press(Message::Resume(p.pid)),
-                        button("Boost").on_press(Message::Boost(p.pid)),
-                        button("Lower").on_press(Message::Lower(p.pid)),
+                    container(
+                    
+                        row![
+                        button(text("Kill").size(15))
+                            .on_press(Message::Kill(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(KillButton)))
+                            .padding([4, 10]),
+                        button(text("Suspend").size(15))
+                            .on_press(Message::Suspend(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(SuspendButton)))
+                            .padding([4, 10]),
+                        button(text("Resume").size(15))
+                            .on_press(Message::Resume(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(ResumeButton)))
+                            .padding([4, 10]),
+                        button(text("Boost").size(15))
+                            .on_press(Message::Boost(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(BoostButton)))
+                            .padding([4, 10]),
+                        button(text("Lower").size(15))
+                            .on_press(Message::Lower(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(LowerButton)))
+                            .padding([4, 10]),
                     ]
-                    .spacing(6)
+                    .spacing(6) )
+                    .padding([0, 8, 0, 0]) // ⬅️ adds 8px right padding
+                    .width(Length::FillPortion(2))
                     .width(Length::FillPortion(2))
                 ]
                 .spacing(20),
