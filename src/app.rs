@@ -435,7 +435,7 @@ impl Application for ProcMonApp {
             #[cfg(all(target_family = "unix", not(target_os = "macos")))]
             {
                 container(sortable("Name", SortKey::Name, &self.settings))
-                    .width(470)
+                    .width(510)
             }
         };
     
@@ -462,7 +462,7 @@ impl Application for ProcMonApp {
             #[cfg(target_os = "windows")]
             let name_width = 450;
             #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-            let name_width = 470;
+            let name_width = 510;
             #[cfg(target_os = "macos")]
             let name_width = Length::FillPortion(3);
 
