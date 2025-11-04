@@ -4,9 +4,10 @@ use std::time::{Duration, Instant};
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color, Background};
+use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
+use iced::Background;
 
 use crate::platform;
 use crate::util;
@@ -15,8 +16,6 @@ use util::fmt_bytes;
 
 const TICK: Duration = Duration::from_millis(700);
 const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
-
-
 
 // Base trait for shared rounded look
 trait RoundedBase {
@@ -342,23 +341,20 @@ impl Application for ProcMonApp {
 
 
         // Header row
-let header = container(
-    row![
-        container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-        container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
-        container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-        container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-        container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-        container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-        container(text("Actions").size(18))
-            .width(Length::FillPortion(2))
-            .center_x()
-            .center_y(),  // Add this line
-    ]
-    .spacing(20)
-    .align_items(Alignment::Center)  // This helps align all items in the row
-)
-.padding([12, 10]);
+        let header = container(
+            row![
+                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                container(text("Actions").size(18)).width(Length::FillPortion(2)).center_x(),
+            ]
+            .spacing(20)
+        )
+        .padding([12, 10]);
+
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
@@ -370,28 +366,12 @@ let header = container(
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
                     text(fmt_bytes(p.write_bps) + "/s").width(110.0),
                     row![
-                        button("Kill")
-                            .on_press(Message::Kill(p.pid))
-                            .style(iced::theme::Button::Custom(Box::new(KillButton)))
-                            .padding([4, 10]),
-                        button("Suspend")
-                            .on_press(Message::Suspend(p.pid))
-                            .style(iced::theme::Button::Custom(Box::new(SuspendButton)))
-                            .padding([4, 10]),
-                        button("Resume")
-                            .on_press(Message::Resume(p.pid))
-                            .style(iced::theme::Button::Custom(Box::new(ResumeButton)))
-                            .padding([4, 10]),
-                        button("Boost")
-                            .on_press(Message::Boost(p.pid))
-                            .style(iced::theme::Button::Custom(Box::new(BoostButton)))
-                            .padding([4, 10]),
-                        button("Lower")
-                            .on_press(Message::Lower(p.pid))
-                            .style(iced::theme::Button::Custom(Box::new(LowerButton)))
-                            .padding([4, 10]),
+                        button("Kill").on_press(Message::Kill(p.pid)),
+                        button("Suspend").on_press(Message::Suspend(p.pid)),
+                        button("Resume").on_press(Message::Resume(p.pid)),
+                        button("Boost").on_press(Message::Boost(p.pid)),
+                        button("Lower").on_press(Message::Lower(p.pid)),
                     ]
-
                     .spacing(6)
                     .width(Length::FillPortion(2))
                 ]
