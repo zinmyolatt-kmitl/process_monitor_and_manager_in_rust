@@ -1,6 +1,5 @@
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
-
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
@@ -106,9 +105,6 @@ impl text_input::StyleSheet for RoundedTextInput {
         }
     }
 }
-
-
-
 
 
 // Base trait for shared rounded look
@@ -396,7 +392,6 @@ impl Application for ProcMonApp {
         let controls = row![
             Space::with_width(150.0),
 
-            // 🔍 Filter input (shifted right)
             text_input("Filter (name or PID)", &self.settings.filter)
                 .on_input(Message::FilterChanged)
                 .width(360.0)
@@ -404,7 +399,6 @@ impl Application for ProcMonApp {
 
             Space::with_width(Length::FillPortion(1)),
 
-            // 🧠 Center section: Start command + Start button
             row![
                 text_input("Start command…", &self.settings.cmd_to_start)
                     .on_input(Message::StartChanged)
@@ -424,36 +418,28 @@ impl Application for ProcMonApp {
         .spacing(10)
         .align_items(Alignment::Center);
 
-
-
-
-
-
         // Header row
         let name_header = {
-        #[cfg(target_os = "macos")]
-        {
-            container(sortable("Name", SortKey::Name, &self.settings))
-                .width(Length::FillPortion(3)) // ⬅️ smaller width on macOS (text renders wider)
-        }
+            #[cfg(target_os = "macos")]
+            {
+                container(sortable("Name", SortKey::Name, &self.settings))
+                    .width(Length::FillPortion(3))
+            }
 
-        #[cfg(target_os = "windows")]
-        {
-            container(sortable("Name", SortKey::Name, &self.settings))
-                .width(Length::FillPortion(3)) // ⬅️ default
-        }
+            #[cfg(target_os = "windows")]
+            {
+                container(sortable("Name", SortKey::Name, &self.settings))
+                    .width(450)
+            }
 
-        #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-        {
-            container(sortable("Name", SortKey::Name, &self.settings))
-                .width(Length::FillPortion(4)) // ⬅️ more space on Linux for process names
-        }
-    };
+            #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+            {
+                container(sortable("Name", SortKey::Name, &self.settings))
+                    .width(470)
+            }
+        };
     
         let header = container(
-
-
-
             row![
                 container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
                 name_header,
@@ -471,15 +457,19 @@ impl Application for ProcMonApp {
         )
         .padding([12, 10]);
 
-
-        // --- Name column width changes based on OS ---
-
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
+            #[cfg(target_os = "windows")]
+            let name_width = 450;
+            #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+            let name_width = 470;
+            #[cfg(target_os = "macos")]
+            let name_width = Length::FillPortion(3);
+
             container(
                 row![
                     text(p.pid).width(70.0),
-                    text(p.name.clone()).width(Length::FillPortion(3)),
+                    text(p.name.clone()).width(name_width),
                     text(format!("{:.1}", p.cpu)).width(80.0),
                     text(fmt_bytes(p.mem_bytes)).width(110.0),
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
@@ -589,7 +579,7 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
     if s.sort_key == key {
     caption.push_str(match s.sort_dir {
     SortDir::Asc => " ↑",
-    SortDir::Desc => " ↓",  // ✅ Add the down arrow
+    SortDir::Desc => " ↓",
 });
     }
     button(text(caption).size(14))
