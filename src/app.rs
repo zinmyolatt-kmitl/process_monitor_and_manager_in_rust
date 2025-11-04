@@ -8,9 +8,6 @@ use iced::{executor, Alignment, Application, Command, Element, Length, Subscript
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
 
-
-
-
 use crate::platform;
 use crate::util;
 
@@ -21,7 +18,7 @@ const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
 
 // -------- Sorting --------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortKey {
+pub enum SortKey {
     Pid,
     Name,
     Cpu,
@@ -77,6 +74,7 @@ struct Suggestion {
 }
 
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 struct SettingsModel {
     filter: String,
     sort_key: SortKey,
@@ -142,9 +140,6 @@ pub struct ProcMonApp {
     suggestions: Vec<Suggestion>,
 }
 
-
-
-
 impl Application for ProcMonApp {
     type Executor = executor::Default;
     type Message = Message;
@@ -185,7 +180,7 @@ impl Application for ProcMonApp {
 
 
     fn title(&self) -> String {
-        "Iced ProcMon".into()
+        "Process Monitor and Manager".into()
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
@@ -313,6 +308,114 @@ impl Application for ProcMonApp {
     //     .into()
     // }
 
+    // fn view(&self) -> Element<'_, Self::Message> {
+    //     // Controls row
+    //     let controls = row![
+    //         text_input("Filter (name or PID)", &self.settings.filter)
+    //             .on_input(Message::FilterChanged)
+    //             .width(260.0),
+    //         Space::with_width(10.0),
+    //         text_input("Start command…", &self.settings.cmd_to_start)
+    //             .on_input(Message::StartChanged)
+    //             .width(Length::FillPortion(2)),
+    //         button("Start").on_press(Message::StartNow),
+    //         Space::with_width(Length::Fill),
+    //         checkbox("CPU alerts", self.settings.alerts_on_cpu).on_toggle(Message::CpuAlertChanged),
+    //         Space::with_width(10.0),
+    //         checkbox("Mem alerts", self.settings.alerts_on_mem).on_toggle(Message::MemAlertChanged),
+    //     ]
+    //     .spacing(10)
+    //     .align_items(Alignment::Center);
+
+    //     // Header row - FIXED ALIGNMENT with sorting
+    //     let header = container(
+    //         row![
+    //             container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+    //             container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+    //             container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+    //             container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+    //             container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+    //             container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+    //             container(text("Actions")).width(Length::FillPortion(2)),
+    //         ]
+    //         .spacing(20)
+    //     )
+    //     .padding([6, 10])
+    //     .style(|_theme: &Theme| {
+    //         container::Appearance {
+    //             background: Some(iced::Background::Color(iced::Color::from_rgb(0.2, 0.2, 0.2))),
+    //             ..Default::default()
+    //         }
+    //     });
+
+    //     // Process rows
+    //     let rows = self.filtered_sorted_rows().into_iter().map(|p| {
+    //         container(
+    //             row![
+    //                 text(p.pid).width(70.0),
+    //                 text(p.name.clone()).width(Length::FillPortion(3)),
+    //                 text(format!("{:.1}", p.cpu)).width(80.0),
+    //                 text(fmt_bytes(p.mem_bytes)).width(110.0),
+    //                 text(fmt_bytes(p.read_bps) + "/s").width(110.0),
+    //                 text(fmt_bytes(p.write_bps) + "/s").width(110.0),
+    //                 row![
+    //                     button("Kill").on_press(Message::Kill(p.pid)),
+    //                     button("Suspend").on_press(Message::Suspend(p.pid)),
+    //                     button("Resume").on_press(Message::Resume(p.pid)),
+    //                     button("Boost").on_press(Message::Boost(p.pid)),
+    //                     button("Lower").on_press(Message::Lower(p.pid)),
+    //                 ]
+    //                 .spacing(6)
+    //                 .width(Length::FillPortion(2))
+    //             ]
+    //             .spacing(20),
+    //         )
+    //         .padding([4, 10])
+    //         .into()
+    //     });
+    //     let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
+
+    //     // Graphs
+    //     // let graphs = row![
+    //     //     sparkline("CPU", &self.graphs.cpu),
+    //     //     sparkline("Mem", &self.graphs.mem),
+    //     //     sparkline("Disk R", &self.graphs.disk_read),
+    //     //     sparkline("Disk W", &self.graphs.disk_write),
+    //     //     sparkline("Net RX", &self.graphs.net_rx),
+    //     //     sparkline("Net TX", &self.graphs.net_tx),
+    //     // ]
+    //     // .spacing(12)
+    //     // .height(Length::FillPortion(1));
+
+    //     let graphs = row![
+    //         sparkline("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),        // Red
+    //         sparkline("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),        // Green
+    //         sparkline("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)), // Cyan
+    //         sparkline("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)), // Yellow
+    //         sparkline("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),   // Pink
+    //         sparkline("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),   // Purple
+    //     ]
+    //     .spacing(12)
+    //     .height(Length::FillPortion(1));
+
+    //     // Suggestions
+    //     let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
+    //         text("No suggestions. System looks calm.").size(16).into()
+    //     } else {
+    //         let items = self.suggestions.iter().map(|s| {
+    //             container(column![text(&s.title).size(16), text(&s.detail).size(14)])
+    //                 .padding(8)
+    //                 .into()
+    //         });
+    //         column(items).spacing(8).into()
+    //     };
+
+    //     container(column![controls, header, table, graphs, Space::with_height(8), sugg]
+    //         .spacing(8)
+    //         .padding(12))
+    //     .into()
+    // }
+
     fn view(&self) -> Element<'_, Self::Message> {
         // Controls row
         let controls = row![
@@ -332,7 +435,7 @@ impl Application for ProcMonApp {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        // Header row - FIXED ALIGNMENT with sorting
+        // Header row - IMPROVED STYLING with better padding (no background)
         let header = container(
             row![
                 container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
@@ -341,17 +444,11 @@ impl Application for ProcMonApp {
                 container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
                 container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
                 container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-                container(text("Actions")).width(Length::FillPortion(2)),
+                container(text("Actions").size(14)).width(Length::FillPortion(2)),
             ]
             .spacing(20)
         )
-        .padding([6, 10])
-        .style(|theme: &Theme| {
-            container::Appearance {
-                background: Some(iced::Background::Color(iced::Color::from_rgb(0.2, 0.2, 0.2))),
-                ..Default::default()
-            }
-        });
+        .padding([12, 10]);  // Just padding, no background
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
@@ -380,25 +477,14 @@ impl Application for ProcMonApp {
         });
         let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
 
-        // Graphs
-        // let graphs = row![
-        //     sparkline("CPU", &self.graphs.cpu),
-        //     sparkline("Mem", &self.graphs.mem),
-        //     sparkline("Disk R", &self.graphs.disk_read),
-        //     sparkline("Disk W", &self.graphs.disk_write),
-        //     sparkline("Net RX", &self.graphs.net_rx),
-        //     sparkline("Net TX", &self.graphs.net_tx),
-        // ]
-        // .spacing(12)
-        // .height(Length::FillPortion(1));
-
+        // Graphs with individual backgrounds and spacing
         let graphs = row![
-            sparkline("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),        // Red
-            sparkline("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),        // Green
-            sparkline("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)), // Cyan
-            sparkline("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)), // Yellow
-            sparkline("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),   // Pink
-            sparkline("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),   // Purple
+            graph_card("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),
+            graph_card("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),
+            graph_card("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)),
+            graph_card("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)),
+            graph_card("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),
+            graph_card("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),
         ]
         .spacing(12)
         .height(Length::FillPortion(1));
@@ -415,9 +501,21 @@ impl Application for ProcMonApp {
             column(items).spacing(8).into()
         };
 
-        container(column![controls, header, table, graphs, Space::with_height(8), sugg]
+        container(
+            column![
+                controls, 
+                Space::with_height(8),
+                header, 
+                Space::with_height(8),
+                table, 
+                Space::with_height(16),
+                graphs, 
+                Space::with_height(8), 
+                sugg
+            ]
             .spacing(8)
-            .padding(12))
+            .padding(12)
+        )
         .into()
     }
 }
@@ -444,7 +542,7 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
     }
     button(text(caption).size(14))
         .on_press(Message::SortBy(key))
-        .width(Length::Fill)  // Make button fill its container
+        .width(Length::Fill)  
         .into()
 }
 
@@ -503,69 +601,7 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
 //         .into()
 // }
 
-// all cyan
-// fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
-//     use iced::{Color, Rectangle};
-//     use iced_widget::canvas::{Frame, Stroke};
 
-//     struct Plot<'a>(&'a VecDeque<f32>);
-
-//     impl<'a> canvas::Program<Message> for Plot<'a> {
-//         type State = ();
-
-//         fn draw(
-//             &self,
-//             _state: &(),
-//             renderer: &iced::Renderer,
-//             _theme: &Theme,
-//             bounds: Rectangle,
-//             _cursor: iced::mouse::Cursor,
-//         ) -> Vec<canvas::Geometry> {
-//             let mut frame = Frame::new(renderer, bounds.size());
-//             let w = bounds.width;
-//             let h = bounds.height;
-//             let data = self.0;
-
-//             if data.len() >= 2 {
-//                 let max = data.iter().cloned().fold(1.0, f32::max);
-//                 let step = w / (data.len().saturating_sub(1) as f32);
-//                 let mut builder = iced_widget::canvas::path::Builder::new();
-
-//                 for (i, v) in data.iter().enumerate() {
-//                     let x = i as f32 * step;
-//                     let y = h - (v / max) * h;
-//                     if i == 0 {
-//                         builder.move_to([x, y].into());
-//                     } else {
-//                         builder.line_to([x, y].into());
-//                     }
-//                 }
-
-//                 let path = builder.build();
-                
-//                 // Use a bright, visible color for the line
-//                 let stroke = Stroke::default()
-//                     .with_width(2.0)
-//                     .with_color(Color::from_rgb(0.3, 0.8, 1.0));
-                
-//                 frame.stroke(&path, stroke);
-//             }
-//             vec![frame.into_geometry()]
-//         }
-//     }
-
-//     let canvas = canvas(Plot(&series.points))
-//         .width(Length::Fill)
-//         .height(80.0);
-
-//     column![text(label).size(14), canvas]
-//         .spacing(4)
-//         .width(Length::FillPortion(1))
-//         .into()
-// }
-
-
-// OPTIONAL: Replace sparkline function with this version for different colors per graph
 fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> Element<'a, Message> {
     use iced::{Color, Rectangle};
     use iced_widget::canvas::{Frame, Stroke};
@@ -626,8 +662,24 @@ fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> El
         .into()
 }
 
-// Then update the graphs section in view() to:
-
+fn graph_card<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Element<'a, Message> {
+    let sparkline_widget = sparkline(label, series, color);
+    
+    container(sparkline_widget)
+        .padding(12)
+        .width(Length::FillPortion(1))
+        .style(|_theme: &Theme| {
+            container::Appearance {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.25))),
+                border: iced::Border {
+                    radius: 8.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        })
+        .into()
+}
 
 // -------- Logic --------
 impl ProcMonApp {
@@ -787,8 +839,6 @@ fn total_net_bytes(nets: &Networks) -> (u64, u64) {
     }
     (rx, tx)
 }
-
-use sysinfo::Process;
 
 fn total_disk_bytes(sys: &System) -> (u64, u64) {
     let mut r = 0;
