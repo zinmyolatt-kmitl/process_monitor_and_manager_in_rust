@@ -17,6 +17,99 @@ const TICK: Duration = Duration::from_millis(700);
 const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
 
 
+struct StartButton;
+impl button::StyleSheet for StartButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(0.1, 0.4, 0.8))), // teal
+            text_color: Color::WHITE,
+            border: iced::Border {
+                radius: 16.0.into(), 
+                width: 0.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(Background::Color(Color::from_rgb(0.15, 0.55, 1.0))),
+            text_color: Color::WHITE,
+            border: iced::Border {
+                radius: 16.0.into(),
+                width: 0.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+}
+impl RoundedBase for StartButton {}
+
+
+
+struct RoundedTextInput;
+
+impl text_input::StyleSheet for RoundedTextInput {
+    type Style = iced::Theme;
+
+    fn active(&self, _style: &Self::Style) -> text_input::Appearance {
+        text_input::Appearance {
+            background: Background::Color(Color::from_rgb(0.18, 0.18, 0.18)),
+            border: iced::Border {
+                radius: 7.0.into(),
+                width: 1.0,
+                color: Color::from_rgb(0.3, 0.3, 0.3),
+            },
+            icon_color: Color::WHITE,
+        }
+    }
+
+    fn focused(&self, _style: &Self::Style) -> text_input::Appearance {
+        text_input::Appearance {
+            background: Background::Color(Color::from_rgb(0.22, 0.22, 0.22)),
+            border: iced::Border {
+                radius: 7.0.into(),
+                width: 1.0,
+                color: Color::from_rgb(0.4, 0.4, 1.0),
+            },
+            icon_color: Color::WHITE,
+        }
+    }
+
+    fn placeholder_color(&self, _style: &Self::Style) -> Color {
+        Color::from_rgb(0.6, 0.6, 0.6)
+    }
+
+    fn value_color(&self, _style: &Self::Style) -> Color {
+        Color::WHITE
+    }
+
+    fn selection_color(&self, _style: &Self::Style) -> Color {
+        Color::from_rgb(0.4, 0.4, 1.0)
+    }
+
+    fn disabled_color(&self, _style: &Self::Style) -> Color {
+        Color::from_rgb(0.5, 0.5, 0.5)
+    }
+
+    fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
+        text_input::Appearance {
+            background: Background::Color(Color::from_rgb(0.15, 0.15, 0.15)),
+            border: iced::Border {
+                radius: 6.0.into(),
+                width: 1.0,
+                color: Color::from_rgb(0.25, 0.25, 0.25),
+            },
+            icon_color: Color::from_rgb(0.5, 0.5, 0.5),
+        }
+    }
+}
+
+
+
+
 
 // Base trait for shared rounded look
 trait RoundedBase {
@@ -328,18 +421,39 @@ impl Application for ProcMonApp {
         // .align_items(Alignment::Center);
 
         let controls = row![
+            Space::with_width(150.0),
+
+            // 🔍 Filter input (shifted right)
             text_input("Filter (name or PID)", &self.settings.filter)
                 .on_input(Message::FilterChanged)
-                .width(260.0),
-            Space::with_width(10.0),
-            text_input("Start command…", &self.settings.cmd_to_start)
-                .on_input(Message::StartChanged)
-                .on_submit(Message::StartNow)
-                .width(Length::FillPortion(2)),
-            button("Start").on_press(Message::StartNow),
+                .width(360.0)
+                .style(iced::theme::TextInput::Custom(Box::new(RoundedTextInput))),
+
+            Space::with_width(Length::FillPortion(1)),
+
+            // 🧠 Center section: Start command + Start button
+            row![
+                text_input("Start command…", &self.settings.cmd_to_start)
+                    .on_input(Message::StartChanged)
+                    .on_submit(Message::StartNow)
+                    .width(Length::Fixed(260.0))
+                    .style(iced::theme::TextInput::Custom(Box::new(RoundedTextInput))),
+                Space::with_width(10.0),
+                button("Start")
+                    .on_press(Message::StartNow)
+                    .padding([6, 24])
+                    .style(iced::theme::Button::Custom(Box::new(StartButton))),
+            ]
+            .align_items(Alignment::Center),
+
+            Space::with_width(Length::FillPortion(1)),
         ]
         .spacing(10)
         .align_items(Alignment::Center);
+
+
+
+
 
 
         // Header row
