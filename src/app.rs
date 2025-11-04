@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme};
+use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
 
@@ -224,6 +224,95 @@ impl Application for ProcMonApp {
         Theme::Dark
     }
 
+    // fn view(&self) -> Element<'_, Self::Message> {
+    //     // Controls row
+    //     let controls = row![
+    //         text_input("Filter (name or PID)", &self.settings.filter)
+    //             .on_input(Message::FilterChanged)
+    //             .width(260.0),
+    //         Space::with_width(10.0),
+    //         text_input("Start command…", &self.settings.cmd_to_start)
+    //             .on_input(Message::StartChanged)
+    //             .width(Length::FillPortion(2)),
+    //         button("Start").on_press(Message::StartNow),
+    //         Space::with_width(Length::Fill),
+    //         checkbox("CPU alerts", self.settings.alerts_on_cpu).on_toggle(Message::CpuAlertChanged),
+    //         Space::with_width(10.0),
+    //         checkbox("Mem alerts", self.settings.alerts_on_mem).on_toggle(Message::MemAlertChanged),
+    //     ]
+    //     .spacing(10)
+    //     .align_items(Alignment::Center);
+
+    //     // Header row
+    //     let header = row![
+    //         sortable("PID", SortKey::Pid, &self.settings),
+    //         container(sortable("Name", SortKey::Name, &self.settings))
+    //             .width(Length::FillPortion(3)),
+    //         sortable("CPU %", SortKey::Cpu, &self.settings),
+    //         sortable("Memory", SortKey::Mem, &self.settings),
+    //         sortable("Read/s", SortKey::Read, &self.settings),
+    //         sortable("Write/s", SortKey::Write, &self.settings),
+    //         text("Actions").width(Length::FillPortion(2)).size(16),
+    //     ]
+    //     .spacing(20)
+    //     .padding([6, 10]);
+
+    //     // Process rows
+    //     let rows = self.filtered_sorted_rows().into_iter().map(|p| {
+    //         container(
+    //             row![
+    //                 text(p.pid).width(70.0),
+    //                 text(p.name.clone()).width(Length::FillPortion(3)),
+    //                 text(format!("{:.1}", p.cpu)).width(80.0),
+    //                 text(fmt_bytes(p.mem_bytes)).width(110.0),
+    //                 text(fmt_bytes(p.read_bps) + "/s").width(110.0),
+    //                 text(fmt_bytes(p.write_bps) + "/s").width(110.0),
+    //                 row![
+    //                     button("Kill").on_press(Message::Kill(p.pid)),
+    //                     button("Suspend").on_press(Message::Suspend(p.pid)),
+    //                     button("Resume").on_press(Message::Resume(p.pid)),
+    //                     button("Boost").on_press(Message::Boost(p.pid)),
+    //                     button("Lower").on_press(Message::Lower(p.pid)),
+    //                 ]
+    //                 .spacing(6)
+    //             ]
+    //             .spacing(20),
+    //         )
+    //         .padding([4, 10])
+    //         .into()
+    //     });
+    //     let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
+
+    //     // Graphs
+    //     let graphs = row![
+    //         sparkline("CPU", &self.graphs.cpu),
+    //         sparkline("Mem", &self.graphs.mem),
+    //         sparkline("Disk R", &self.graphs.disk_read),
+    //         sparkline("Disk W", &self.graphs.disk_write),
+    //         sparkline("Net RX", &self.graphs.net_rx),
+    //         sparkline("Net TX", &self.graphs.net_tx),
+    //     ]
+    //     .spacing(12)
+    //     .height(Length::FillPortion(1));
+
+    //     // Suggestions
+    //     let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
+    //         text("No suggestions. System looks calm.").size(16).into()
+    //     } else {
+    //         let items = self.suggestions.iter().map(|s| {
+    //             container(column![text(&s.title).size(16), text(&s.detail).size(14)])
+    //                 .padding(8)
+    //                 .into()
+    //         });
+    //         column(items).spacing(8).into()
+    //     };
+
+    //     container(column![controls, header, table, graphs, Space::with_height(8), sugg]
+    //         .spacing(8)
+    //         .padding(12))
+    //     .into()
+    // }
+
     fn view(&self) -> Element<'_, Self::Message> {
         // Controls row
         let controls = row![
@@ -243,19 +332,26 @@ impl Application for ProcMonApp {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        // Header row
-        let header = row![
-            sortable("PID", SortKey::Pid, &self.settings),
-            container(sortable("Name", SortKey::Name, &self.settings))
-                .width(Length::FillPortion(3)),
-            sortable("CPU %", SortKey::Cpu, &self.settings),
-            sortable("Memory", SortKey::Mem, &self.settings),
-            sortable("Read/s", SortKey::Read, &self.settings),
-            sortable("Write/s", SortKey::Write, &self.settings),
-            text("Actions").width(Length::FillPortion(2)).size(16),
-        ]
-        .spacing(20)
-        .padding([6, 10]);
+        // Header row - FIXED ALIGNMENT with sorting
+        let header = container(
+            row![
+                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                container(text("Actions")).width(Length::FillPortion(2)),
+            ]
+            .spacing(20)
+        )
+        .padding([6, 10])
+        .style(|theme: &Theme| {
+            container::Appearance {
+                background: Some(iced::Background::Color(iced::Color::from_rgb(0.2, 0.2, 0.2))),
+                ..Default::default()
+            }
+        });
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
@@ -275,6 +371,7 @@ impl Application for ProcMonApp {
                         button("Lower").on_press(Message::Lower(p.pid)),
                     ]
                     .spacing(6)
+                    .width(Length::FillPortion(2))
                 ]
                 .spacing(20),
             )
@@ -284,13 +381,24 @@ impl Application for ProcMonApp {
         let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
 
         // Graphs
+        // let graphs = row![
+        //     sparkline("CPU", &self.graphs.cpu),
+        //     sparkline("Mem", &self.graphs.mem),
+        //     sparkline("Disk R", &self.graphs.disk_read),
+        //     sparkline("Disk W", &self.graphs.disk_write),
+        //     sparkline("Net RX", &self.graphs.net_rx),
+        //     sparkline("Net TX", &self.graphs.net_tx),
+        // ]
+        // .spacing(12)
+        // .height(Length::FillPortion(1));
+
         let graphs = row![
-            sparkline("CPU", &self.graphs.cpu),
-            sparkline("Mem", &self.graphs.mem),
-            sparkline("Disk R", &self.graphs.disk_read),
-            sparkline("Disk W", &self.graphs.disk_write),
-            sparkline("Net RX", &self.graphs.net_rx),
-            sparkline("Net TX", &self.graphs.net_tx),
+            sparkline("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),        // Red
+            sparkline("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),        // Green
+            sparkline("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)), // Cyan
+            sparkline("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)), // Yellow
+            sparkline("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),   // Pink
+            sparkline("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),   // Purple
         ]
         .spacing(12)
         .height(Length::FillPortion(1));
@@ -315,6 +423,17 @@ impl Application for ProcMonApp {
 }
 
 // -------- Helpers --------
+// fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
+//     let mut caption = label.to_string();
+//     if s.sort_key == key {
+//         caption.push_str(match s.sort_dir {
+//             SortDir::Asc => " ↑",
+//             SortDir::Desc => " ↓",
+//         });
+//     }
+//     button(text(caption)).on_press(Message::SortBy(key)).into()
+// }
+
 fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
     let mut caption = label.to_string();
     if s.sort_key == key {
@@ -323,14 +442,135 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
             SortDir::Desc => " ↓",
         });
     }
-    button(text(caption)).on_press(Message::SortBy(key)).into()
+    button(text(caption).size(14))
+        .on_press(Message::SortBy(key))
+        .width(Length::Fill)  // Make button fill its container
+        .into()
 }
 
-fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
-    use iced::Rectangle;
+// zml
+// fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
+//     use iced::Rectangle;
+//     use iced_widget::canvas::{Frame, Stroke};
+
+//     struct Plot<'a>(&'a VecDeque<f32>);
+
+//     impl<'a> canvas::Program<Message> for Plot<'a> {
+//         type State = ();
+
+//         fn draw(
+//             &self,
+//             _state: &(),
+//             renderer: &iced::Renderer,
+//             _theme: &Theme,
+//             bounds: Rectangle,
+//             _cursor: iced::mouse::Cursor,
+//         ) -> Vec<canvas::Geometry> {
+//             let mut frame = Frame::new(renderer, bounds.size());
+//             let w = bounds.width;
+//             let h = bounds.height;
+//             let data = self.0;
+
+//             if data.len() >= 2 {
+//                 let max = data.iter().cloned().fold(1.0, f32::max);
+//                 let step = w / (data.len().saturating_sub(1) as f32);
+//                 let mut builder = iced_widget::canvas::path::Builder::new();
+
+//                 for (i, v) in data.iter().enumerate() {
+//                     let x = i as f32 * step;
+//                     let y = h - (v / max) * h;
+//                     if i == 0 {
+//                         builder.move_to([x, y].into());
+//                     } else {
+//                         builder.line_to([x, y].into());
+//                     }
+//                 }
+
+//                 let path = builder.build();
+//                 frame.stroke(&path, Stroke::default());
+//             }
+//             vec![frame.into_geometry()]
+//         }
+//     }
+
+//     let canvas = canvas(Plot(&series.points))
+//         .width(Length::Fill)
+//         .height(80.0);
+
+//     column![text(label), canvas]
+//         .spacing(4)
+//         .width(Length::FillPortion(1))
+//         .into()
+// }
+
+// all cyan
+// fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
+//     use iced::{Color, Rectangle};
+//     use iced_widget::canvas::{Frame, Stroke};
+
+//     struct Plot<'a>(&'a VecDeque<f32>);
+
+//     impl<'a> canvas::Program<Message> for Plot<'a> {
+//         type State = ();
+
+//         fn draw(
+//             &self,
+//             _state: &(),
+//             renderer: &iced::Renderer,
+//             _theme: &Theme,
+//             bounds: Rectangle,
+//             _cursor: iced::mouse::Cursor,
+//         ) -> Vec<canvas::Geometry> {
+//             let mut frame = Frame::new(renderer, bounds.size());
+//             let w = bounds.width;
+//             let h = bounds.height;
+//             let data = self.0;
+
+//             if data.len() >= 2 {
+//                 let max = data.iter().cloned().fold(1.0, f32::max);
+//                 let step = w / (data.len().saturating_sub(1) as f32);
+//                 let mut builder = iced_widget::canvas::path::Builder::new();
+
+//                 for (i, v) in data.iter().enumerate() {
+//                     let x = i as f32 * step;
+//                     let y = h - (v / max) * h;
+//                     if i == 0 {
+//                         builder.move_to([x, y].into());
+//                     } else {
+//                         builder.line_to([x, y].into());
+//                     }
+//                 }
+
+//                 let path = builder.build();
+                
+//                 // Use a bright, visible color for the line
+//                 let stroke = Stroke::default()
+//                     .with_width(2.0)
+//                     .with_color(Color::from_rgb(0.3, 0.8, 1.0));
+                
+//                 frame.stroke(&path, stroke);
+//             }
+//             vec![frame.into_geometry()]
+//         }
+//     }
+
+//     let canvas = canvas(Plot(&series.points))
+//         .width(Length::Fill)
+//         .height(80.0);
+
+//     column![text(label).size(14), canvas]
+//         .spacing(4)
+//         .width(Length::FillPortion(1))
+//         .into()
+// }
+
+
+// OPTIONAL: Replace sparkline function with this version for different colors per graph
+fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> Element<'a, Message> {
+    use iced::{Color, Rectangle};
     use iced_widget::canvas::{Frame, Stroke};
 
-    struct Plot<'a>(&'a VecDeque<f32>);
+    struct Plot<'a>(&'a VecDeque<f32>, Color);
 
     impl<'a> canvas::Program<Message> for Plot<'a> {
         type State = ();
@@ -364,21 +604,30 @@ fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
                 }
 
                 let path = builder.build();
-                frame.stroke(&path, Stroke::default());
+                
+                // Create stroke with proper styling
+                let stroke = Stroke::default()
+                    .with_width(2.0)
+                    .with_color(self.1);
+                
+                frame.stroke(&path, stroke);
             }
             vec![frame.into_geometry()]
         }
     }
 
-    let canvas = canvas(Plot(&series.points))
+    let canvas = canvas(Plot(&series.points, color))
         .width(Length::Fill)
         .height(80.0);
 
-    column![text(label), canvas]
+    column![text(label).size(14), canvas]
         .spacing(4)
         .width(Length::FillPortion(1))
         .into()
 }
+
+// Then update the graphs section in view() to:
+
 
 // -------- Logic --------
 impl ProcMonApp {
