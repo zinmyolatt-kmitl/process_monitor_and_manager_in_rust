@@ -228,15 +228,19 @@ impl Application for ProcMonApp {
             Space::with_width(10.0),
             text_input("Start command…", &self.settings.cmd_to_start)
                 .on_input(Message::StartChanged)
+                .on_submit(Message::StartNow) // ✅ Added this
                 .width(Length::FillPortion(2)),
-            button("Start").on_press(Message::StartNow),
+            button("Start").on_press(Message::StartNow), // ✅ Click still works too
             Space::with_width(Length::Fill),
-            checkbox("CPU alerts", self.settings.alerts_on_cpu).on_toggle(Message::CpuAlertChanged),
+            checkbox("CPU alerts", self.settings.alerts_on_cpu)
+                .on_toggle(Message::CpuAlertChanged),
             Space::with_width(10.0),
-            checkbox("Mem alerts", self.settings.alerts_on_mem).on_toggle(Message::MemAlertChanged),
+            checkbox("Mem alerts", self.settings.alerts_on_mem)
+                .on_toggle(Message::MemAlertChanged),
         ]
         .spacing(10)
         .align_items(Alignment::Center);
+
 
         // Header row
         let header = container(
