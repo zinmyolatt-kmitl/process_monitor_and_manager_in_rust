@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
+use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color, Background};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
 
