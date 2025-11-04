@@ -298,18 +298,28 @@ impl Application for ProcMonApp {
 
         // Suggestions
         let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-            text("No suggestions. System looks calm.").size(16).into()
+            container(text("No suggestions. System looks calm.").size(16))
+                .padding(8)
+                .into()
         } else {
             let items = self.suggestions.iter().map(|s| {
                 container(column![text(&s.title).size(16), text(&s.detail).size(14)])
                     .padding(8)
                     .into()
             });
-            column(items).spacing(8).into()
+            
+            // Wrap in scrollable with fixed height (approximately 3 items worth)
+            container(
+        scrollable(column(items).spacing(8))
+                    .height(Length::Fixed(180.0))
+                    .width(Length::Fill)  // Make scrollable take full width
+            )
+            .width(Length::Fill)  // Make container take full width
+            .into()
         };
 
         container(
-            column![
+    column![
                 controls, 
                 Space::with_height(8),
                 header, 
