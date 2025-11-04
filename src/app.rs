@@ -4,12 +4,9 @@ use std::time::{Duration, Instant};
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme};
+use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
-
-
-
 
 use crate::platform;
 use crate::util;
@@ -21,7 +18,7 @@ const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
 
 // -------- Sorting --------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortKey {
+pub enum SortKey {
     Pid,
     Name,
     Cpu,
@@ -77,6 +74,7 @@ struct Suggestion {
 }
 
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 struct SettingsModel {
     filter: String,
     sort_key: SortKey,
@@ -142,9 +140,6 @@ pub struct ProcMonApp {
     suggestions: Vec<Suggestion>,
 }
 
-
-
-
 impl Application for ProcMonApp {
     type Executor = executor::Default;
     type Message = Message;
@@ -185,7 +180,7 @@ impl Application for ProcMonApp {
 
 
     fn title(&self) -> String {
-        "Iced ProcMon".into()
+        "Process Monitor and Manager".into()
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
@@ -244,18 +239,19 @@ impl Application for ProcMonApp {
         .align_items(Alignment::Center);
 
         // Header row
-        let header = row![
-            sortable("PID", SortKey::Pid, &self.settings),
-            container(sortable("Name", SortKey::Name, &self.settings))
-                .width(Length::FillPortion(3)),
-            sortable("CPU %", SortKey::Cpu, &self.settings),
-            sortable("Memory", SortKey::Mem, &self.settings),
-            sortable("Read/s", SortKey::Read, &self.settings),
-            sortable("Write/s", SortKey::Write, &self.settings),
-            text("Actions").width(Length::FillPortion(2)).size(16),
-        ]
-        .spacing(20)
-        .padding([6, 10]);
+        let header = container(
+            row![
+                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                container(text("Actions").size(14)).width(Length::FillPortion(2)),
+            ]
+            .spacing(20)
+        )
+        .padding([12, 10]);
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
@@ -275,6 +271,7 @@ impl Application for ProcMonApp {
                         button("Lower").on_press(Message::Lower(p.pid)),
                     ]
                     .spacing(6)
+                    .width(Length::FillPortion(2))
                 ]
                 .spacing(20),
             )
@@ -285,12 +282,12 @@ impl Application for ProcMonApp {
 
         // Graphs
         let graphs = row![
-            sparkline("CPU", &self.graphs.cpu),
-            sparkline("Mem", &self.graphs.mem),
-            sparkline("Disk R", &self.graphs.disk_read),
-            sparkline("Disk W", &self.graphs.disk_write),
-            sparkline("Net RX", &self.graphs.net_rx),
-            sparkline("Net TX", &self.graphs.net_tx),
+            graph_card("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),
+            graph_card("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),
+            graph_card("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)),
+            graph_card("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)),
+            graph_card("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),
+            graph_card("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),
         ]
         .spacing(12)
         .height(Length::FillPortion(1));
@@ -307,9 +304,21 @@ impl Application for ProcMonApp {
             column(items).spacing(8).into()
         };
 
-        container(column![controls, header, table, graphs, Space::with_height(8), sugg]
+        container(
+            column![
+                controls, 
+                Space::with_height(8),
+                header, 
+                Space::with_height(8),
+                table, 
+                Space::with_height(16),
+                graphs, 
+                Space::with_height(8), 
+                sugg
+            ]
             .spacing(8)
-            .padding(12))
+            .padding(12)
+        )
         .into()
     }
 }
@@ -323,14 +332,17 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
             SortDir::Desc => " ↓",
         });
     }
-    button(text(caption)).on_press(Message::SortBy(key)).into()
+    button(text(caption).size(14))
+        .on_press(Message::SortBy(key))
+        .width(Length::Fill)  
+        .into()
 }
 
-fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
-    use iced::Rectangle;
+fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> Element<'a, Message> {
+    use iced::{Color, Rectangle};
     use iced_widget::canvas::{Frame, Stroke};
 
-    struct Plot<'a>(&'a VecDeque<f32>);
+    struct Plot<'a>(&'a VecDeque<f32>, Color);
 
     impl<'a> canvas::Program<Message> for Plot<'a> {
         type State = ();
@@ -364,19 +376,44 @@ fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
                 }
 
                 let path = builder.build();
-                frame.stroke(&path, Stroke::default());
+                
+                // Create stroke with proper styling
+                let stroke = Stroke::default()
+                    .with_width(2.0)
+                    .with_color(self.1);
+                
+                frame.stroke(&path, stroke);
             }
             vec![frame.into_geometry()]
         }
     }
 
-    let canvas = canvas(Plot(&series.points))
+    let canvas = canvas(Plot(&series.points, color))
         .width(Length::Fill)
         .height(80.0);
 
-    column![text(label), canvas]
+    column![text(label).size(14), canvas]
         .spacing(4)
         .width(Length::FillPortion(1))
+        .into()
+}
+
+fn graph_card<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Element<'a, Message> {
+    let sparkline_widget = sparkline(label, series, color);
+    
+    container(sparkline_widget)
+        .padding(12)
+        .width(Length::FillPortion(1))
+        .style(|_theme: &Theme| {
+            container::Appearance {
+                background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.25))),
+                border: iced::Border {
+                    radius: 8.0.into(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        })
         .into()
 }
 
@@ -452,7 +489,12 @@ impl ProcMonApp {
         self.procs = rows;
 
         // Suggestions
-        self.suggestions = make_suggestions(&self.procs, total_cpu, mem_pct);
+        self.suggestions = make_suggestions(
+            &self.procs,
+            if self.settings.alerts_on_cpu { total_cpu } else { 0.0 },
+            if self.settings.alerts_on_mem { mem_pct } else { 0.0 },
+        );
+
     }
 
     fn filtered_sorted_rows(&self) -> Vec<ProcRow> {
@@ -538,8 +580,6 @@ fn total_net_bytes(nets: &Networks) -> (u64, u64) {
     }
     (rx, tx)
 }
-
-use sysinfo::Process;
 
 fn total_disk_bytes(sys: &System) -> (u64, u64) {
     let mut r = 0;
