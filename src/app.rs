@@ -16,8 +16,6 @@ use util::fmt_bytes;
 const TICK: Duration = Duration::from_millis(700);
 const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
 
-
-
 // Base trait for shared rounded look
 trait RoundedBase {
     fn base(&self, color: Color) -> button::Appearance {
@@ -25,7 +23,7 @@ trait RoundedBase {
             background: Some(Background::Color(color)),
             text_color: Color::WHITE,
             border: iced::Border {
-                radius: 6.0.into(), // ✅ soft-rounded corners
+                radius: 6.0.into(),
                 width: 0.0,
                 ..Default::default()
             },
@@ -46,7 +44,6 @@ impl button::StyleSheet for KillButton {
 }
 impl RoundedBase for KillButton {}
 
-// 🔵 Suspend Button (Blue)
 struct SuspendButton;
 impl button::StyleSheet for SuspendButton {
     type Style = iced::Theme;
@@ -59,7 +56,6 @@ impl button::StyleSheet for SuspendButton {
 }
 impl RoundedBase for SuspendButton {}
 
-// 🟢 Resume Button (Green)
 struct ResumeButton;
 impl button::StyleSheet for ResumeButton {
     type Style = iced::Theme;
@@ -72,7 +68,6 @@ impl button::StyleSheet for ResumeButton {
 }
 impl RoundedBase for ResumeButton {}
 
-// 🟠 Boost Button (Orange)
 struct BoostButton;
 impl button::StyleSheet for BoostButton {
     type Style = iced::Theme;
@@ -85,21 +80,17 @@ impl button::StyleSheet for BoostButton {
 }
 impl RoundedBase for BoostButton {}
 
-// ⚪ Lower Button (Gray)
 struct LowerButton;
 impl button::StyleSheet for LowerButton {
     type Style = iced::Theme;
     fn active(&self, _: &Self::Style) -> button::Appearance {
-        self.base(Color::from_rgb(0.65, 0.65, 0.68)) // lighter gray
+        self.base(Color::from_rgb(0.65, 0.65, 0.68))
     }
     fn hovered(&self, _: &Self::Style) -> button::Appearance {
-        self.base(Color::from_rgb(0.75, 0.75, 0.78)) // slightly brighter on hover
+        self.base(Color::from_rgb(0.75, 0.75, 0.78))
     }
 }
 impl RoundedBase for LowerButton {}
-
-
-
 
 
 // -------- Sorting --------
@@ -307,26 +298,6 @@ impl Application for ProcMonApp {
 
     fn view(&self) -> Element<'_, Self::Message> {
         // Controls row
-        // let controls = row![
-        //     text_input("Filter (name or PID)", &self.settings.filter)
-        //         .on_input(Message::FilterChanged)
-        //         .width(260.0),
-        //     Space::with_width(10.0),
-        //     text_input("Start command…", &self.settings.cmd_to_start)
-        //         .on_input(Message::StartChanged)
-        //         .on_submit(Message::StartNow) // ✅ Added this
-        //         .width(Length::FillPortion(2)),
-        //     button("Start").on_press(Message::StartNow), // ✅ Click still works too
-        //     Space::with_width(Length::Fill),
-        //     checkbox("CPU alerts", self.settings.alerts_on_cpu)
-        //         .on_toggle(Message::CpuAlertChanged),
-        //     Space::with_width(10.0),
-        //     checkbox("Mem alerts", self.settings.alerts_on_mem)
-        //         .on_toggle(Message::MemAlertChanged),
-        // ]
-        // .spacing(10)
-        // .align_items(Alignment::Center);
-
         let controls = row![
             text_input("Filter (name or PID)", &self.settings.filter)
                 .on_input(Message::FilterChanged)
@@ -341,37 +312,35 @@ impl Application for ProcMonApp {
         .spacing(10)
         .align_items(Alignment::Center);
 
-
         // Header row
-let header = container(
-    row![
-        container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-        container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
-        container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-        container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-        container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-        container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-        container(text("Actions").size(18))
-            .width(Length::FillPortion(2))
-            .center_x()
-            .center_y(),  // Add this line
-    ]
-    .spacing(20)
-    .align_items(Alignment::Center)  // This helps align all items in the row
-)
-.padding([12, 10]);
+        let header = container(
+            row![
+                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                container(sortable("Name", SortKey::Name, &self.settings)).width(450),
+                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                container(text("Actions").size(18))
+                    .width(Length::FillPortion(2))
+                    .center_x()
+                    .center_y(), 
+            ]
+            .spacing(20)
+            .align_items(Alignment::Center)
+        )
+        .padding([12, 10]);
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
                 row![
                     text(p.pid).width(70.0),
-                    text(p.name.clone()).width(Length::FillPortion(3)),
+                    text(p.name.clone()).width(450),
                     text(format!("{:.1}", p.cpu)).width(80.0),
                     text(fmt_bytes(p.mem_bytes)).width(110.0),
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
                     text(fmt_bytes(p.write_bps) + "/s").width(110.0),
                     container(
-                    
                         row![
                         button(text("Kill").size(15))
                             .on_press(Message::Kill(p.pid))
@@ -395,8 +364,7 @@ let header = container(
                             .padding([4, 10]),
                     ]
                     .spacing(6) )
-                    .padding([0, 8, 0, 0]) // ⬅️ adds 8px right padding
-                    .width(Length::FillPortion(2))
+                    .padding([0, 8, 0, 0])
                     .width(Length::FillPortion(2))
                 ]
                 .spacing(20),
@@ -404,6 +372,7 @@ let header = container(
             .padding([4, 10])
             .into()
         });
+
         let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
 
         // Graphs
@@ -417,28 +386,6 @@ let header = container(
         ]
         .spacing(12)
         .height(Length::FillPortion(1));
-
-        // Suggestions
-        // let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-        //     container(text("No suggestions. System looks calm.").size(16))
-        //         .padding(8)
-        //         .into()
-        // } else {
-        //     let items = self.suggestions.iter().map(|s| {
-        //         container(column![text(&s.title).size(16), text(&s.detail).size(14)])
-        //             .padding(8)
-        //             .into()
-        //     });
-            
-        //     // Wrap in scrollable with fixed height (approximately 3 items worth)
-        //     container(
-        // scrollable(column(items).spacing(8))
-        //             .height(Length::Fixed(180.0))
-        //             .width(Length::Fill)  // Make scrollable take full width
-        //     )
-        //     .width(Length::Fill)  // Make container take full width
-        //     .into()
-        // };
 
         let alert_controls = row![
             text("Alerts:").size(14),
@@ -462,50 +409,33 @@ let header = container(
                     .into()
             });
             
-            // Wrap in scrollable with fixed height and full width
             container(
                 scrollable(column(items).spacing(8))
                     .height(Length::Fixed(180.0))
-                    .width(Length::Fill)  // Make scrollable take full width
+                    .width(Length::Fill)
             )
-            .width(Length::Fill)  // Make container take full width
+            .width(Length::Fill) 
             .into()
         };
 
-    //     container(
-    // column![
-    //             controls, 
-    //             Space::with_height(8),
-    //             header, 
-    //             Space::with_height(8),
-    //             table, 
-    //             Space::with_height(16),
-    //             graphs, 
-    //             Space::with_height(8), 
-    //             sugg
-    //         ]
-    //         .spacing(8)
-    //         .padding(12)
-    //     )
-    //     .into()
-    container(
-    column![
-                controls, 
-                Space::with_height(8),
-                header, 
-                Space::with_height(8),
-                table, 
-                Space::with_height(16),
-                graphs, 
-                Space::with_height(8),
-                alert_controls,  // Alert checkboxes here
-                Space::with_height(4),
-                sugg
-            ]
-            .spacing(8)
-            .padding(12)
-        )
-        .into()
+        container(
+        column![
+                    controls, 
+                    Space::with_height(8),
+                    header, 
+                    Space::with_height(8),
+                    table, 
+                    Space::with_height(16),
+                    graphs, 
+                    Space::with_height(8),
+                    alert_controls,
+                    Space::with_height(4),
+                    sugg
+                ]
+                .spacing(8)
+                .padding(12)
+            )
+            .into()
     }
 }
 
@@ -563,7 +493,6 @@ fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> El
 
                 let path = builder.build();
                 
-                // Create stroke with proper styling
                 let stroke = Stroke::default()
                     .with_width(2.0)
                     .with_color(self.1);
@@ -777,4 +706,3 @@ fn total_disk_bytes(sys: &System) -> (u64, u64) {
     }
     (r, w)
 }
-
