@@ -509,10 +509,10 @@ impl Application for ProcMonApp {
 fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
     let mut caption = label.to_string();
     if s.sort_key == key {
-        caption.push_str(match s.sort_dir {
-            SortDir::Asc => "↑",
-            SortDir::Desc => "↓",
-        });
+    caption.push_str(match s.sort_dir {
+    SortDir::Asc => " ↑",
+    SortDir::Desc => " ↓",  // ✅ Add the down arrow
+});
     }
     button(text(caption).size(14))
         .on_press(Message::SortBy(key))
