@@ -342,20 +342,23 @@ impl Application for ProcMonApp {
 
 
         // Header row
-        let header = container(
-            row![
-                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
-                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-                container(text("Actions").size(18)).width(Length::FillPortion(2)).center_x(),
-            ]
-            .spacing(20)
-        )
-        .padding([12, 10]);
-
+let header = container(
+    row![
+        container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+        container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
+        container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+        container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+        container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+        container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+        container(text("Actions").size(18))
+            .width(Length::FillPortion(2))
+            .center_x()
+            .center_y(),  // Add this line
+    ]
+    .spacing(20)
+    .align_items(Alignment::Center)  // This helps align all items in the row
+)
+.padding([12, 10]);
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
@@ -507,8 +510,8 @@ fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Mes
     let mut caption = label.to_string();
     if s.sort_key == key {
         caption.push_str(match s.sort_dir {
-            SortDir::Asc => " ↑",
-            SortDir::Desc => " ↓",
+            SortDir::Asc => "↑",
+            SortDir::Desc => "↓",
         });
     }
     button(text(caption).size(14))
