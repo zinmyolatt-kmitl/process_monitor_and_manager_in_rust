@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use iced::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input, Space,
 };
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
+use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color, Background};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
 
@@ -15,6 +15,91 @@ use util::fmt_bytes;
 
 const TICK: Duration = Duration::from_millis(700);
 const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
+
+
+
+// Base trait for shared rounded look
+trait RoundedBase {
+    fn base(&self, color: Color) -> button::Appearance {
+        button::Appearance {
+            background: Some(Background::Color(color)),
+            text_color: Color::WHITE,
+            border: iced::Border {
+                radius: 6.0.into(), // ✅ soft-rounded corners
+                width: 0.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+}
+
+struct KillButton;
+impl button::StyleSheet for KillButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.6, 0.1, 0.1))
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.8, 0.2, 0.2))
+    }
+}
+impl RoundedBase for KillButton {}
+
+// 🔵 Suspend Button (Blue)
+struct SuspendButton;
+impl button::StyleSheet for SuspendButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.25, 0.25, 0.6))
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.35, 0.35, 0.75))
+    }
+}
+impl RoundedBase for SuspendButton {}
+
+// 🟢 Resume Button (Green)
+struct ResumeButton;
+impl button::StyleSheet for ResumeButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.2, 0.55, 0.2))
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.3, 0.65, 0.3))
+    }
+}
+impl RoundedBase for ResumeButton {}
+
+// 🟠 Boost Button (Orange)
+struct BoostButton;
+impl button::StyleSheet for BoostButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.8, 0.5, 0.1))
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.95, 0.6, 0.2))
+    }
+}
+impl RoundedBase for BoostButton {}
+
+// ⚪ Lower Button (Gray)
+struct LowerButton;
+impl button::StyleSheet for LowerButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.45, 0.45, 0.45))
+    }
+    fn hovered(&self, _: &Self::Style) -> button::Appearance {
+        self.base(Color::from_rgb(0.55, 0.55, 0.55))
+    }
+}
+impl RoundedBase for LowerButton {}
+
+
+
 
 // -------- Sorting --------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -244,18 +329,20 @@ impl Application for ProcMonApp {
 
         // Header row
         let header = container(
-            row![
-                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
-                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-                container(text("Actions").size(14)).width(Length::FillPortion(2)),
-            ]
-            .spacing(20)
-        )
-        .padding([12, 10]);
+                row![
+                    container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
+                    container(sortable("Name", SortKey::Name, &self.settings))
+                        .width(Length::FillPortion(3)),
+                    container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
+                    container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
+                    container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
+                    container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
+                    container(text("Actions").size(14)).width(Length::FillPortion(2)),
+                ]
+                .spacing(20),
+            )
+            .padding([12, 10]);
+
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
@@ -268,12 +355,28 @@ impl Application for ProcMonApp {
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
                     text(fmt_bytes(p.write_bps) + "/s").width(110.0),
                     row![
-                        button("Kill").on_press(Message::Kill(p.pid)),
-                        button("Suspend").on_press(Message::Suspend(p.pid)),
-                        button("Resume").on_press(Message::Resume(p.pid)),
-                        button("Boost").on_press(Message::Boost(p.pid)),
-                        button("Lower").on_press(Message::Lower(p.pid)),
+                        button("Kill")
+                            .on_press(Message::Kill(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(KillButton)))
+                            .padding([4, 10]),
+                        button("Suspend")
+                            .on_press(Message::Suspend(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(SuspendButton)))
+                            .padding([4, 10]),
+                        button("Resume")
+                            .on_press(Message::Resume(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(ResumeButton)))
+                            .padding([4, 10]),
+                        button("Boost")
+                            .on_press(Message::Boost(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(BoostButton)))
+                            .padding([4, 10]),
+                        button("Lower")
+                            .on_press(Message::Lower(p.pid))
+                            .style(iced::theme::Button::Custom(Box::new(LowerButton)))
+                            .padding([4, 10]),
                     ]
+
                     .spacing(6)
                     .width(Length::FillPortion(2))
                 ]
