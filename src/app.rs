@@ -701,7 +701,12 @@ impl ProcMonApp {
         self.procs = rows;
 
         // Suggestions
-        self.suggestions = make_suggestions(&self.procs, total_cpu, mem_pct);
+        self.suggestions = make_suggestions(
+            &self.procs,
+            if self.settings.alerts_on_cpu { total_cpu } else { 0.0 },
+            if self.settings.alerts_on_mem { mem_pct } else { 0.0 },
+    );
+
     }
 
     fn filtered_sorted_rows(&self) -> Vec<ProcRow> {
@@ -733,7 +738,7 @@ impl ProcMonApp {
 
 fn make_suggestions(rows: &[ProcRow], total_cpu: f32, mem_pct: f32) -> Vec<Suggestion> {
     let mut out = Vec::new();
-    if total_cpu > 80.0 {
+    if total_cpu > 20.0 {
         if let Some(top) = rows.iter().max_by(|a, b| a.cpu.total_cmp(&b.cpu)) {
             out.push(Suggestion {
                 title: format!("High CPU: {} at {:.1}%", top.name, top.cpu),
@@ -744,7 +749,7 @@ fn make_suggestions(rows: &[ProcRow], total_cpu: f32, mem_pct: f32) -> Vec<Sugge
             });
         }
     }
-    if mem_pct > 90.0 {
+    if mem_pct > 20.0 {
         if let Some(top) = rows.iter().max_by_key(|p| p.mem_bytes) {
             out.push(Suggestion {
                 title: format!(
