@@ -489,7 +489,12 @@ impl ProcMonApp {
         self.procs = rows;
 
         // Suggestions
-        self.suggestions = make_suggestions(&self.procs, total_cpu, mem_pct);
+        self.suggestions = make_suggestions(
+            &self.procs,
+            if self.settings.alerts_on_cpu { total_cpu } else { 0.0 },
+            if self.settings.alerts_on_mem { mem_pct } else { 0.0 },
+        );
+
     }
 
     fn filtered_sorted_rows(&self) -> Vec<ProcRow> {
