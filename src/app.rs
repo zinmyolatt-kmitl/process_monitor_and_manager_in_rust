@@ -430,10 +430,33 @@ impl Application for ProcMonApp {
 
 
         // Header row
+        let name_header = {
+        #[cfg(target_os = "macos")]
+        {
+            container(sortable("Name", SortKey::Name, &self.settings))
+                .width(Length::FillPortion(3)) // ⬅️ smaller width on macOS (text renders wider)
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            container(sortable("Name", SortKey::Name, &self.settings))
+                .width(Length::FillPortion(3)) // ⬅️ default
+        }
+
+        #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+        {
+            container(sortable("Name", SortKey::Name, &self.settings))
+                .width(Length::FillPortion(4)) // ⬅️ more space on Linux for process names
+        }
+    };
+    
         let header = container(
+
+
+
             row![
                 container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                container(sortable("Name", SortKey::Name, &self.settings)).width(450),
+                name_header,
                 container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
                 container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
                 container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
@@ -447,12 +470,16 @@ impl Application for ProcMonApp {
             .align_items(Alignment::Center)
         )
         .padding([12, 10]);
+
+
+        // --- Name column width changes based on OS ---
+
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
                 row![
                     text(p.pid).width(70.0),
-                    text(p.name.clone()).width(450),
+                    text(p.name.clone()).width(Length::FillPortion(3)),
                     text(format!("{:.1}", p.cpu)).width(80.0),
                     text(fmt_bytes(p.mem_bytes)).width(110.0),
                     text(fmt_bytes(p.read_bps) + "/s").width(110.0),
