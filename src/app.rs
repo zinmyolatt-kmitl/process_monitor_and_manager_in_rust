@@ -63,8 +63,6 @@ impl button::StyleSheet for StartButton {
 }
 impl RoundedBase for StartButton {}
 
-
-
 struct RoundedTextInput;
 
 impl text_input::StyleSheet for RoundedTextInput {
@@ -124,7 +122,6 @@ impl text_input::StyleSheet for RoundedTextInput {
 }
 
 
-// Base trait for shared rounded look
 trait RoundedBase {
     fn base(&self, color: Color) -> button::Appearance {
         button::Appearance {
@@ -323,6 +320,7 @@ pub struct ProcMonApp {
     graphs: SystemGraphs,
     settings: SettingsModel,
     suggestions: Vec<Suggestion>,
+    dot_phase: usize,
 }
 
 impl Application for ProcMonApp {
@@ -332,32 +330,32 @@ impl Application for ProcMonApp {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-    let mut sys = System::new_all();
-    sys.refresh_all();
+        let mut sys = System::new_all();
+        sys.refresh_all();
 
-    let mut app = ProcMonApp {
-        sys,
-        networks: Networks::new_with_refreshed_list(),
-        last_io: HashMap::new(),
-        last_net: (0, 0),
-        last_disk: (0, 0),
-        last_ts: Instant::now(),
-        procs: Vec::new(),
-        graphs: SystemGraphs::default(),
-        settings: SettingsModel {
-            thresholds: Thresholds {
-                cpu_percent: 85,
-                mem_percent: 90,
+        let mut app = ProcMonApp {
+            sys,
+            networks: Networks::new_with_refreshed_list(),
+            last_io: HashMap::new(),
+            last_net: (0, 0),
+            last_disk: (0, 0),
+            last_ts: Instant::now(),
+            procs: Vec::new(),
+            graphs: SystemGraphs::default(),
+            settings: SettingsModel {
+                thresholds: Thresholds {
+                    cpu_percent: 85,
+                    mem_percent: 90,
+                },
+                alerts_on_cpu: true,
+                alerts_on_mem: true,
+                sort_key: SortKey::Cpu,
+                sort_dir: SortDir::Desc,
+                ..Default::default()
             },
-            alerts_on_cpu: true,
-            alerts_on_mem: true,
-            sort_key: SortKey::Cpu,
-            sort_dir: SortDir::Desc,
-            ..Default::default()
-        },
-        suggestions: Vec::new(),
-    };
-
+            suggestions: Vec::new(),
+            dot_phase: 0,
+        };
 
         app.refresh_now();
         (app, Command::none())
@@ -370,7 +368,10 @@ impl Application for ProcMonApp {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::Tick => self.refresh_now(),
+            Message::Tick => {
+                self.refresh_now();
+                self.dot_phase = (self.dot_phase + 1) % 4;
+            },
             Message::FilterChanged(s) => self.settings.filter = s,
             Message::SortBy(k) => {
                 if self.settings.sort_key == k {
@@ -461,21 +462,30 @@ impl Application for ProcMonApp {
         .padding([12, 10]);
 
 
+        let dots = ".".repeat(self.dot_phase);
+        let status_text = format!("{} Processes currently running", self.procs.len());
 
+        let dot_display = text(format!("{:<3}", dots)) 
+            .size(16)
+            .style(Color::from_rgb(1.0, 1.0, 0.0))
+            .font(iced::Font::MONOSPACE);
 
         let top_bar = row![
             text("ProcDeck – Process Monitor & Manager")
                 .size(23)
                 .style(Color::from_rgb(0.6, 0.8, 1.0)),
             Space::with_width(Length::Fill),
-            text(format!("{} Processes currently running...", self.procs.len()))
-                .size(16)
-                .style(Color::from_rgb(1.0, 1.0, 0.0)),
+            row![
+                text(status_text)
+                    .size(16)
+                    .style(Color::from_rgb(1.0, 1.0, 0.0)),
+                dot_display,
+            ]
+            .spacing(2)
         ]
         .align_items(Alignment::Center)
-        .padding([8, 12]);
+        .padding([8, 30]);
 
-        // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
                 row![
