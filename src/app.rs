@@ -418,31 +418,17 @@ impl Application for ProcMonApp {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        // Header row
-        let name_header = {
-            #[cfg(target_os = "macos")]
-            {
-                container(sortable("Name", SortKey::Name, &self.settings))
-                    .width(Length::FillPortion(3))
-            }
-
-            #[cfg(target_os = "windows")]
-            {
-                container(sortable("Name", SortKey::Name, &self.settings))
-                    .width(450)
-            }
-
-            #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-            {
-                container(sortable("Name", SortKey::Name, &self.settings))
-                    .width(510)
-            }
-        };
+        #[cfg(target_os = "windows")]
+        let name_width = 450;
+        #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+        let name_width = 510;
+        #[cfg(target_os = "macos")]
+        let name_width = Length::FillPortion(3);
     
         let header = container(
             row![
                 container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                name_header,
+                container(sortable("Name", SortKey::Name, &self.settings)).width(name_width),
                 container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
                 container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
                 container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
@@ -459,13 +445,6 @@ impl Application for ProcMonApp {
 
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
-            #[cfg(target_os = "windows")]
-            let name_width = 450;
-            #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-            let name_width = 510;
-            #[cfg(target_os = "macos")]
-            let name_width = Length::FillPortion(3);
-
             container(
                 row![
                     text(p.pid).width(70.0),
