@@ -134,17 +134,17 @@ impl Application for ProcMonApp {
 
         column![
             top,
-            Space::with_height(4),
+            Space::with_height(8),
             controls,
-            Space::with_height(8),
+            // Space::with_height(2),
             header,
-            Space::with_height(8),
+            // Space::with_height(2),
             table,
-            Space::with_height(16),
+            // Space::with_height(2),
             graphs,
-            Space::with_height(8),
-            alerts,
             Space::with_height(4),
+            alerts,
+            // Space::with_height(4),
             sugg
         ]
         .spacing(8)

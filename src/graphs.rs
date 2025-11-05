@@ -30,7 +30,8 @@ pub fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Elem
 
                 for (i, v) in data.iter().enumerate() {
                     let x = i as f32 * step;
-                    let y = h - (v / max) * h;
+                    let margin = 2.0;
+                    let y = (h - margin) - (v / max) * (h - 2.0 - margin);
                     if i == 0 {
                         builder.move_to([x, y].into());
                     } else {
