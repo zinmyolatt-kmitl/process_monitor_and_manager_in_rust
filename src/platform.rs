@@ -75,14 +75,42 @@ pub fn resume(pid: i32) -> std::io::Result<()> {
 }
 
 #[cfg(target_family = "unix")]
-pub fn priority_boost(_pid: i32) -> std::io::Result<()> {
-    // TODO: implement nice/renice
+pub fn priority_boost(pid: i32) -> std::io::Result<()> {
+    use libc::{getpriority, setpriority, PRIO_PROCESS};
+    use std::io;
+
+    unsafe {
+        let current = getpriority(PRIO_PROCESS, pid as u32);
+        let mut new_nice = current - 1; 
+        if new_nice < -20 {
+            new_nice = -20;
+        }
+
+        if setpriority(PRIO_PROCESS, pid as u32, new_nice) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+    }
+
     Ok(())
 }
 
 #[cfg(target_family = "unix")]
-pub fn priority_lower(_pid: i32) -> std::io::Result<()> {
-    // TODO: implement nice/renice
+pub fn priority_lower(pid: i32) -> std::io::Result<()> {
+    use libc::{getpriority, setpriority, PRIO_PROCESS};
+    use std::io;
+
+    unsafe {
+        let current = getpriority(PRIO_PROCESS, pid as u32);
+        let mut new_nice = current + 1;
+        if new_nice > 19 {
+            new_nice = 19;
+        }
+
+        if setpriority(PRIO_PROCESS, pid as u32, new_nice) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+    }
+
     Ok(())
 }
 
