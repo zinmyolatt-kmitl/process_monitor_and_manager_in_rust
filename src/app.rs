@@ -6,10 +6,8 @@ use iced::widget::{
 use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color, Background};
 use iced_widget::canvas;
 use sysinfo::{System, Networks};
-
 use crate::platform;
 use crate::util;
-
 use util::fmt_bytes;
 
 const TICK: Duration = Duration::from_millis(700);
@@ -457,6 +455,20 @@ impl Application for ProcMonApp {
                     .width(510)
             }
         };
+
+
+        let top_bar = row![
+            text("ProcDeck – Process Monitor & Manager")
+                .size(23)
+                .style(Color::from_rgb(0.6, 0.8, 1.0)),
+            Space::with_width(Length::Fill),
+            text(format!("{} Processes currently running...", self.procs.len()))
+                .size(16)
+                .style(Color::from_rgb(1.0, 1.0, 0.0)),
+        ]
+        .align_items(Alignment::Center)
+        .padding([8, 12]);
+
     
         let header = container(
             row![
@@ -612,6 +624,8 @@ impl Application for ProcMonApp {
 
         container(
         column![
+                    top_bar,
+                    Space::with_height(4),
                     controls, 
                     Space::with_height(8),
                     header, 
