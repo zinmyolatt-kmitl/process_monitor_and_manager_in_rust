@@ -460,6 +460,21 @@ impl Application for ProcMonApp {
         )
         .padding([12, 10]);
 
+
+
+
+        let top_bar = row![
+            text("ProcDeck – Process Monitor & Manager")
+                .size(23)
+                .style(Color::from_rgb(0.6, 0.8, 1.0)),
+            Space::with_width(Length::Fill),
+            text(format!("{} Processes currently running...", self.procs.len()))
+                .size(16)
+                .style(Color::from_rgb(1.0, 1.0, 0.0)),
+        ]
+        .align_items(Alignment::Center)
+        .padding([8, 12]);
+
         // Process rows
         let rows = self.filtered_sorted_rows().into_iter().map(|p| {
             container(
