@@ -136,15 +136,15 @@ impl Application for ProcMonApp {
             top,
             Space::with_height(4),
             controls,
-            Space::with_height(8),
+            // Space::with_height(8),
             header,
-            Space::with_height(8),
+            // Space::with_height(8),
             table,
-            Space::with_height(16),
+            // Space::with_height(16),
             graphs,
-            Space::with_height(8),
-            alerts,
             Space::with_height(4),
+            alerts,
+            // Space::with_height(4),
             sugg
         ]
         .spacing(8)
