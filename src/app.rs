@@ -1,132 +1,18 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
-
-use iced::widget::{
-    button, checkbox, column, container, row, scrollable, text, text_input, Space,
-};
-use iced::{executor, Alignment, Application, Command, Element, Length, Subscription, Theme, Color};
-use iced_widget::canvas;
+use iced::widget::{column, row, scrollable, Space};
+use iced::{executor, Application, Command, Element, Length, Subscription, Theme, Color};
 use sysinfo::{System, Networks};
 
-
-
-
 use crate::platform;
-use crate::util;
-
-use util::fmt_bytes;
+use crate::models::*;
+use crate::suggestions::make_suggestions;
+use crate::system_monitor::{bytes_per_sec, total_disk_bytes, total_net_bytes};
+use crate::graphs::graph_card;
+use crate::view::*;
 
 const TICK: Duration = Duration::from_millis(700);
-const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
 
-// -------- Sorting --------
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortKey {
-    Pid,
-    Name,
-    Cpu,
-    Mem,
-    Read,
-    Write,
-}
-impl Default for SortKey {
-    fn default() -> Self {
-        SortKey::Cpu
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortDir {
-    Asc,
-    Desc,
-}
-impl Default for SortDir {
-    fn default() -> Self {
-        SortDir::Desc
-    }
-}
-
-// -------- Messages --------
-#[derive(Debug, Clone)]
-pub enum Message {
-    Tick,
-    FilterChanged(String),
-    SortBy(SortKey),
-    Kill(i32),
-    Suspend(i32),
-    Resume(i32),
-    Boost(i32),
-    Lower(i32),
-    StartChanged(String),
-    StartNow,
-    CpuAlertChanged(bool),
-    MemAlertChanged(bool),
-}
-
-// -------- Models --------
-#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
-struct Thresholds {
-    cpu_percent: u8,
-    mem_percent: u8,
-}
-
-#[derive(Debug, Clone, Default)]
-struct Suggestion {
-    title: String,
-    detail: String,
-}
-
-#[derive(Debug, Clone, Default)]
-struct SettingsModel {
-    filter: String,
-    sort_key: SortKey,
-    sort_dir: SortDir,
-    cmd_to_start: String,
-    alerts_on_cpu: bool,
-    alerts_on_mem: bool,
-    thresholds: Thresholds,
-}
-
-#[derive(Debug, Clone, Default)]
-struct GraphSeries {
-    points: VecDeque<f32>,
-}
-impl GraphSeries {
-    fn push(&mut self, v: f32) {
-        if self.points.len() >= GRAPH_POINTS {
-            self.points.pop_front();
-        }
-        self.points.push_back(v);
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct SystemGraphs {
-    cpu: GraphSeries,
-    mem: GraphSeries,
-    disk_read: GraphSeries,
-    disk_write: GraphSeries,
-    net_rx: GraphSeries,
-    net_tx: GraphSeries,
-}
-
-#[derive(Debug, Clone, Default)]
-struct ProcRow {
-    pid: i32,
-    name: String,
-    cpu: f32,
-    mem_bytes: u64,
-    read_bps: u64,
-    write_bps: u64,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-struct IoSnapshot {
-    read: u64,
-    write: u64,
-}
-
-// -------- Application --------
 #[derive(Debug)]
 pub struct ProcMonApp {
     sys: System,
@@ -142,9 +28,6 @@ pub struct ProcMonApp {
     suggestions: Vec<Suggestion>,
 }
 
-
-
-
 impl Application for ProcMonApp {
     type Executor = executor::Default;
     type Message = Message;
@@ -152,40 +35,38 @@ impl Application for ProcMonApp {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-    let mut sys = System::new_all();
-    sys.refresh_all();
+        let mut sys = System::new_all();
+        sys.refresh_all();
 
-    let mut app = ProcMonApp {
-        sys,
-        networks: Networks::new_with_refreshed_list(),
-        last_io: HashMap::new(),
-        last_net: (0, 0),
-        last_disk: (0, 0),
-        last_ts: Instant::now(),
-        procs: Vec::new(),
-        graphs: SystemGraphs::default(),
-        settings: SettingsModel {
-            thresholds: Thresholds {
-                cpu_percent: 85,
-                mem_percent: 90,
+        let mut app = ProcMonApp {
+            sys,
+            networks: Networks::new_with_refreshed_list(),
+            last_io: HashMap::new(),
+            last_net: (0, 0),
+            last_disk: (0, 0),
+            last_ts: Instant::now(),
+            procs: Vec::new(),
+            graphs: SystemGraphs::default(),
+            settings: SettingsModel {
+                thresholds: Thresholds {
+                    cpu_percent: 85,
+                    mem_percent: 90,
+                },
+                alerts_on_cpu: true,
+                alerts_on_mem: true,
+                sort_key: SortKey::Cpu,
+                sort_dir: SortDir::Desc,
+                ..Default::default()
             },
-            alerts_on_cpu: true,
-            alerts_on_mem: true,
-            sort_key: SortKey::Cpu,
-            sort_dir: SortDir::Desc,
-            ..Default::default()
-        },
-        suggestions: Vec::new(),
-    };
-
+            suggestions: Vec::new(),
+        };
 
         app.refresh_now();
         (app, Command::none())
     }
 
-
     fn title(&self) -> String {
-        "Iced ProcMon".into()
+        "Process Monitor and Manager".into()
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
@@ -224,417 +105,58 @@ impl Application for ProcMonApp {
         Theme::Dark
     }
 
-    // fn view(&self) -> Element<'_, Self::Message> {
-    //     // Controls row
-    //     let controls = row![
-    //         text_input("Filter (name or PID)", &self.settings.filter)
-    //             .on_input(Message::FilterChanged)
-    //             .width(260.0),
-    //         Space::with_width(10.0),
-    //         text_input("Start command…", &self.settings.cmd_to_start)
-    //             .on_input(Message::StartChanged)
-    //             .width(Length::FillPortion(2)),
-    //         button("Start").on_press(Message::StartNow),
-    //         Space::with_width(Length::Fill),
-    //         checkbox("CPU alerts", self.settings.alerts_on_cpu).on_toggle(Message::CpuAlertChanged),
-    //         Space::with_width(10.0),
-    //         checkbox("Mem alerts", self.settings.alerts_on_mem).on_toggle(Message::MemAlertChanged),
-    //     ]
-    //     .spacing(10)
-    //     .align_items(Alignment::Center);
-
-    //     // Header row
-    //     let header = row![
-    //         sortable("PID", SortKey::Pid, &self.settings),
-    //         container(sortable("Name", SortKey::Name, &self.settings))
-    //             .width(Length::FillPortion(3)),
-    //         sortable("CPU %", SortKey::Cpu, &self.settings),
-    //         sortable("Memory", SortKey::Mem, &self.settings),
-    //         sortable("Read/s", SortKey::Read, &self.settings),
-    //         sortable("Write/s", SortKey::Write, &self.settings),
-    //         text("Actions").width(Length::FillPortion(2)).size(16),
-    //     ]
-    //     .spacing(20)
-    //     .padding([6, 10]);
-
-    //     // Process rows
-    //     let rows = self.filtered_sorted_rows().into_iter().map(|p| {
-    //         container(
-    //             row![
-    //                 text(p.pid).width(70.0),
-    //                 text(p.name.clone()).width(Length::FillPortion(3)),
-    //                 text(format!("{:.1}", p.cpu)).width(80.0),
-    //                 text(fmt_bytes(p.mem_bytes)).width(110.0),
-    //                 text(fmt_bytes(p.read_bps) + "/s").width(110.0),
-    //                 text(fmt_bytes(p.write_bps) + "/s").width(110.0),
-    //                 row![
-    //                     button("Kill").on_press(Message::Kill(p.pid)),
-    //                     button("Suspend").on_press(Message::Suspend(p.pid)),
-    //                     button("Resume").on_press(Message::Resume(p.pid)),
-    //                     button("Boost").on_press(Message::Boost(p.pid)),
-    //                     button("Lower").on_press(Message::Lower(p.pid)),
-    //                 ]
-    //                 .spacing(6)
-    //             ]
-    //             .spacing(20),
-    //         )
-    //         .padding([4, 10])
-    //         .into()
-    //     });
-    //     let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
-
-    //     // Graphs
-    //     let graphs = row![
-    //         sparkline("CPU", &self.graphs.cpu),
-    //         sparkline("Mem", &self.graphs.mem),
-    //         sparkline("Disk R", &self.graphs.disk_read),
-    //         sparkline("Disk W", &self.graphs.disk_write),
-    //         sparkline("Net RX", &self.graphs.net_rx),
-    //         sparkline("Net TX", &self.graphs.net_tx),
-    //     ]
-    //     .spacing(12)
-    //     .height(Length::FillPortion(1));
-
-    //     // Suggestions
-    //     let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-    //         text("No suggestions. System looks calm.").size(16).into()
-    //     } else {
-    //         let items = self.suggestions.iter().map(|s| {
-    //             container(column![text(&s.title).size(16), text(&s.detail).size(14)])
-    //                 .padding(8)
-    //                 .into()
-    //         });
-    //         column(items).spacing(8).into()
-    //     };
-
-    //     container(column![controls, header, table, graphs, Space::with_height(8), sugg]
-    //         .spacing(8)
-    //         .padding(12))
-    //     .into()
-    // }
-
     fn view(&self) -> Element<'_, Self::Message> {
-        // Controls row
-        let controls = row![
-            text_input("Filter (name or PID)", &self.settings.filter)
-                .on_input(Message::FilterChanged)
-                .width(260.0),
-            Space::with_width(10.0),
-            text_input("Start command…", &self.settings.cmd_to_start)
-                .on_input(Message::StartChanged)
-                .width(Length::FillPortion(2)),
-            button("Start").on_press(Message::StartNow),
-            Space::with_width(Length::Fill),
-            checkbox("CPU alerts", self.settings.alerts_on_cpu).on_toggle(Message::CpuAlertChanged),
-            Space::with_width(10.0),
-            checkbox("Mem alerts", self.settings.alerts_on_mem).on_toggle(Message::MemAlertChanged),
-        ]
-        .spacing(10)
-        .align_items(Alignment::Center);
-
-        // Header row - FIXED ALIGNMENT with sorting
-        let header = container(
-            row![
-                container(sortable("PID", SortKey::Pid, &self.settings)).width(70.0),
-                container(sortable("Name", SortKey::Name, &self.settings)).width(Length::FillPortion(3)),
-                container(sortable("CPU %", SortKey::Cpu, &self.settings)).width(80.0),
-                container(sortable("Memory", SortKey::Mem, &self.settings)).width(110.0),
-                container(sortable("Read/s", SortKey::Read, &self.settings)).width(110.0),
-                container(sortable("Write/s", SortKey::Write, &self.settings)).width(110.0),
-                container(text("Actions")).width(Length::FillPortion(2)),
-            ]
-            .spacing(20)
-        )
-        .padding([6, 10])
-        .style(|theme: &Theme| {
-            container::Appearance {
-                background: Some(iced::Background::Color(iced::Color::from_rgb(0.2, 0.2, 0.2))),
-                ..Default::default()
-            }
-        });
+        let controls = controls_row(&self.settings);
+        let header = table_header(&self.settings);
+        let top = top_bar(self.procs.len());
 
         // Process rows
-        let rows = self.filtered_sorted_rows().into_iter().map(|p| {
-            container(
-                row![
-                    text(p.pid).width(70.0),
-                    text(p.name.clone()).width(Length::FillPortion(3)),
-                    text(format!("{:.1}", p.cpu)).width(80.0),
-                    text(fmt_bytes(p.mem_bytes)).width(110.0),
-                    text(fmt_bytes(p.read_bps) + "/s").width(110.0),
-                    text(fmt_bytes(p.write_bps) + "/s").width(110.0),
-                    row![
-                        button("Kill").on_press(Message::Kill(p.pid)),
-                        button("Suspend").on_press(Message::Suspend(p.pid)),
-                        button("Resume").on_press(Message::Resume(p.pid)),
-                        button("Boost").on_press(Message::Boost(p.pid)),
-                        button("Lower").on_press(Message::Lower(p.pid)),
-                    ]
-                    .spacing(6)
-                    .width(Length::FillPortion(2))
-                ]
-                .spacing(20),
-            )
-            .padding([4, 10])
-            .into()
-        });
+        let rows = self.filtered_sorted_rows()
+            .into_iter()
+            .map(|p| process_row(&p));
+
         let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
 
         // Graphs
-        // let graphs = row![
-        //     sparkline("CPU", &self.graphs.cpu),
-        //     sparkline("Mem", &self.graphs.mem),
-        //     sparkline("Disk R", &self.graphs.disk_read),
-        //     sparkline("Disk W", &self.graphs.disk_write),
-        //     sparkline("Net RX", &self.graphs.net_rx),
-        //     sparkline("Net TX", &self.graphs.net_tx),
-        // ]
-        // .spacing(12)
-        // .height(Length::FillPortion(1));
-
         let graphs = row![
-            sparkline("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),        // Red
-            sparkline("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),        // Green
-            sparkline("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)), // Cyan
-            sparkline("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)), // Yellow
-            sparkline("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),   // Pink
-            sparkline("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),   // Purple
+            graph_card("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),
+            graph_card("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),
+            graph_card("Disk R", &self.graphs.disk_read, Color::from_rgb(0.3, 0.8, 1.0)),
+            graph_card("Disk W", &self.graphs.disk_write, Color::from_rgb(1.0, 0.8, 0.3)),
+            graph_card("Net RX", &self.graphs.net_rx, Color::from_rgb(1.0, 0.5, 1.0)),
+            graph_card("Net TX", &self.graphs.net_tx, Color::from_rgb(0.8, 0.3, 1.0)),
         ]
         .spacing(12)
         .height(Length::FillPortion(1));
 
-        // Suggestions
-        let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-            text("No suggestions. System looks calm.").size(16).into()
-        } else {
-            let items = self.suggestions.iter().map(|s| {
-                container(column![text(&s.title).size(16), text(&s.detail).size(14)])
-                    .padding(8)
-                    .into()
-            });
-            column(items).spacing(8).into()
-        };
+        let alerts = alert_controls(&self.settings);
+        let sugg = suggestions_view(&self.suggestions);
 
-        container(column![controls, header, table, graphs, Space::with_height(8), sugg]
-            .spacing(8)
-            .padding(12))
+        column![
+            top,
+            Space::with_height(4),
+            controls,
+            Space::with_height(8),
+            header,
+            Space::with_height(8),
+            table,
+            Space::with_height(16),
+            graphs,
+            Space::with_height(8),
+            alerts,
+            Space::with_height(4),
+            sugg
+        ]
+        .spacing(8)
+        .padding(12)
         .into()
     }
 }
 
-// -------- Helpers --------
-// fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
-//     let mut caption = label.to_string();
-//     if s.sort_key == key {
-//         caption.push_str(match s.sort_dir {
-//             SortDir::Asc => " ↑",
-//             SortDir::Desc => " ↓",
-//         });
-//     }
-//     button(text(caption)).on_press(Message::SortBy(key)).into()
-// }
-
-fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
-    let mut caption = label.to_string();
-    if s.sort_key == key {
-        caption.push_str(match s.sort_dir {
-            SortDir::Asc => " ↑",
-            SortDir::Desc => " ↓",
-        });
-    }
-    button(text(caption).size(14))
-        .on_press(Message::SortBy(key))
-        .width(Length::Fill)  // Make button fill its container
-        .into()
-}
-
-// zml
-// fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
-//     use iced::Rectangle;
-//     use iced_widget::canvas::{Frame, Stroke};
-
-//     struct Plot<'a>(&'a VecDeque<f32>);
-
-//     impl<'a> canvas::Program<Message> for Plot<'a> {
-//         type State = ();
-
-//         fn draw(
-//             &self,
-//             _state: &(),
-//             renderer: &iced::Renderer,
-//             _theme: &Theme,
-//             bounds: Rectangle,
-//             _cursor: iced::mouse::Cursor,
-//         ) -> Vec<canvas::Geometry> {
-//             let mut frame = Frame::new(renderer, bounds.size());
-//             let w = bounds.width;
-//             let h = bounds.height;
-//             let data = self.0;
-
-//             if data.len() >= 2 {
-//                 let max = data.iter().cloned().fold(1.0, f32::max);
-//                 let step = w / (data.len().saturating_sub(1) as f32);
-//                 let mut builder = iced_widget::canvas::path::Builder::new();
-
-//                 for (i, v) in data.iter().enumerate() {
-//                     let x = i as f32 * step;
-//                     let y = h - (v / max) * h;
-//                     if i == 0 {
-//                         builder.move_to([x, y].into());
-//                     } else {
-//                         builder.line_to([x, y].into());
-//                     }
-//                 }
-
-//                 let path = builder.build();
-//                 frame.stroke(&path, Stroke::default());
-//             }
-//             vec![frame.into_geometry()]
-//         }
-//     }
-
-//     let canvas = canvas(Plot(&series.points))
-//         .width(Length::Fill)
-//         .height(80.0);
-
-//     column![text(label), canvas]
-//         .spacing(4)
-//         .width(Length::FillPortion(1))
-//         .into()
-// }
-
-// all cyan
-// fn sparkline<'a>(label: &str, series: &'a GraphSeries) -> Element<'a, Message> {
-//     use iced::{Color, Rectangle};
-//     use iced_widget::canvas::{Frame, Stroke};
-
-//     struct Plot<'a>(&'a VecDeque<f32>);
-
-//     impl<'a> canvas::Program<Message> for Plot<'a> {
-//         type State = ();
-
-//         fn draw(
-//             &self,
-//             _state: &(),
-//             renderer: &iced::Renderer,
-//             _theme: &Theme,
-//             bounds: Rectangle,
-//             _cursor: iced::mouse::Cursor,
-//         ) -> Vec<canvas::Geometry> {
-//             let mut frame = Frame::new(renderer, bounds.size());
-//             let w = bounds.width;
-//             let h = bounds.height;
-//             let data = self.0;
-
-//             if data.len() >= 2 {
-//                 let max = data.iter().cloned().fold(1.0, f32::max);
-//                 let step = w / (data.len().saturating_sub(1) as f32);
-//                 let mut builder = iced_widget::canvas::path::Builder::new();
-
-//                 for (i, v) in data.iter().enumerate() {
-//                     let x = i as f32 * step;
-//                     let y = h - (v / max) * h;
-//                     if i == 0 {
-//                         builder.move_to([x, y].into());
-//                     } else {
-//                         builder.line_to([x, y].into());
-//                     }
-//                 }
-
-//                 let path = builder.build();
-                
-//                 // Use a bright, visible color for the line
-//                 let stroke = Stroke::default()
-//                     .with_width(2.0)
-//                     .with_color(Color::from_rgb(0.3, 0.8, 1.0));
-                
-//                 frame.stroke(&path, stroke);
-//             }
-//             vec![frame.into_geometry()]
-//         }
-//     }
-
-//     let canvas = canvas(Plot(&series.points))
-//         .width(Length::Fill)
-//         .height(80.0);
-
-//     column![text(label).size(14), canvas]
-//         .spacing(4)
-//         .width(Length::FillPortion(1))
-//         .into()
-// }
-
-
-// OPTIONAL: Replace sparkline function with this version for different colors per graph
-fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: iced::Color) -> Element<'a, Message> {
-    use iced::{Color, Rectangle};
-    use iced_widget::canvas::{Frame, Stroke};
-
-    struct Plot<'a>(&'a VecDeque<f32>, Color);
-
-    impl<'a> canvas::Program<Message> for Plot<'a> {
-        type State = ();
-
-        fn draw(
-            &self,
-            _state: &(),
-            renderer: &iced::Renderer,
-            _theme: &Theme,
-            bounds: Rectangle,
-            _cursor: iced::mouse::Cursor,
-        ) -> Vec<canvas::Geometry> {
-            let mut frame = Frame::new(renderer, bounds.size());
-            let w = bounds.width;
-            let h = bounds.height;
-            let data = self.0;
-
-            if data.len() >= 2 {
-                let max = data.iter().cloned().fold(1.0, f32::max);
-                let step = w / (data.len().saturating_sub(1) as f32);
-                let mut builder = iced_widget::canvas::path::Builder::new();
-
-                for (i, v) in data.iter().enumerate() {
-                    let x = i as f32 * step;
-                    let y = h - (v / max) * h;
-                    if i == 0 {
-                        builder.move_to([x, y].into());
-                    } else {
-                        builder.line_to([x, y].into());
-                    }
-                }
-
-                let path = builder.build();
-                
-                // Create stroke with proper styling
-                let stroke = Stroke::default()
-                    .with_width(2.0)
-                    .with_color(self.1);
-                
-                frame.stroke(&path, stroke);
-            }
-            vec![frame.into_geometry()]
-        }
-    }
-
-    let canvas = canvas(Plot(&series.points, color))
-        .width(Length::Fill)
-        .height(80.0);
-
-    column![text(label).size(14), canvas]
-        .spacing(4)
-        .width(Length::FillPortion(1))
-        .into()
-}
-
-// Then update the graphs section in view() to:
-
-
-// -------- Logic --------
 impl ProcMonApp {
     fn refresh_now(&mut self) {
         self.sys.refresh_all();
         self.networks.refresh();
-    
 
         let now = Instant::now();
         let dt = now.duration_since(self.last_ts).as_secs_f32().max(0.001);
@@ -705,8 +227,7 @@ impl ProcMonApp {
             &self.procs,
             if self.settings.alerts_on_cpu { total_cpu } else { 0.0 },
             if self.settings.alerts_on_mem { mem_pct } else { 0.0 },
-    );
-
+        );
     }
 
     fn filtered_sorted_rows(&self) -> Vec<ProcRow> {
@@ -735,74 +256,3 @@ impl ProcMonApp {
         v
     }
 }
-
-fn make_suggestions(rows: &[ProcRow], total_cpu: f32, mem_pct: f32) -> Vec<Suggestion> {
-    let mut out = Vec::new();
-    if total_cpu > 20.0 {
-        if let Some(top) = rows.iter().max_by(|a, b| a.cpu.total_cmp(&b.cpu)) {
-            out.push(Suggestion {
-                title: format!("High CPU: {} at {:.1}%", top.name, top.cpu),
-                detail: format!(
-                    "Consider suspending or killing PID {} if it's misbehaving.",
-                    top.pid
-                ),
-            });
-        }
-    }
-    if mem_pct > 20.0 {
-        if let Some(top) = rows.iter().max_by_key(|p| p.mem_bytes) {
-            out.push(Suggestion {
-                title: format!(
-                    "Memory pressure: {} using {}",
-                    top.name,
-                    fmt_bytes(top.mem_bytes)
-                ),
-                detail: format!(
-                    "Close unused apps or lower priority of PID {}.",
-                    top.pid
-                ),
-            });
-        }
-    }
-    for p in rows.iter().filter(|p| {
-        p.cpu < 0.5 && (p.read_bps + p.write_bps) < 1024 && p.mem_bytes > 500 * 1024 * 1024
-    }) {
-        out.push(Suggestion {
-            title: format!("Idle hog: {} holding {}", p.name, fmt_bytes(p.mem_bytes)),
-            detail: format!("You could lower its priority or close it. PID {}", p.pid),
-        });
-    }
-    out
-}
-
-fn bytes_per_sec(prev: u64, now: u64, dt_s: f32) -> f32 {
-    if now >= prev {
-        (now - prev) as f32 / dt_s
-    } else {
-        0.0
-    }
-}
-
-fn total_net_bytes(nets: &Networks) -> (u64, u64) {
-    let mut rx = 0;
-    let mut tx = 0;
-    for (_name, data) in nets.iter() {
-        rx += data.total_received();
-        tx += data.total_transmitted();
-    }
-    (rx, tx)
-}
-
-use sysinfo::Process;
-
-fn total_disk_bytes(sys: &System) -> (u64, u64) {
-    let mut r = 0;
-    let mut w = 0;
-    for (_pid, process) in sys.processes() {
-        let io = process.disk_usage();
-        r += io.total_read_bytes;
-        w += io.total_written_bytes;
-    }
-    (r, w)
-}
-
