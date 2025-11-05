@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 
 pub const GRAPH_POINTS: usize = 120;
 
-// -------- Sorting --------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortKey {
     Pid,
@@ -31,7 +30,6 @@ impl Default for SortDir {
     }
 }
 
-// -------- Messages --------
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,

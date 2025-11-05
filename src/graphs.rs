@@ -51,12 +51,6 @@ pub fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Elem
         }
     }
 
-    // let canvas_container = container(iced_widget::canvas(Plot(&series.points, color))
-    //     .width(Length::Fill)
-    //     .height(80.0)
-        
-    // ).padding([2,0,4,0]);
-
     let canvas = iced_widget::canvas(Plot(&series.points, color))
         .width(Length::Fill)
         .height(80.0);

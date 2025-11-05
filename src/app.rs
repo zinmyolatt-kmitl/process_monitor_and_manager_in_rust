@@ -115,14 +115,12 @@ impl Application for ProcMonApp {
         let header = table_header(&self.settings);
         let top = top_bar(self.procs.len(), self.dot_phase);
 
-        // Process rows
         let rows = self.filtered_sorted_rows()
             .into_iter()
             .map(|p| process_row(&p));
 
         let table = scrollable(column(rows).spacing(2)).height(Length::FillPortion(3));
 
-        // Graphs
         let graphs = row![
             graph_card("CPU", &self.graphs.cpu, Color::from_rgb(1.0, 0.3, 0.3)),
             graph_card("Mem", &self.graphs.mem, Color::from_rgb(0.3, 1.0, 0.3)),
@@ -141,15 +139,11 @@ impl Application for ProcMonApp {
             top,
             Space::with_height(4),
             controls,
-            // Space::with_height(8),
             header,
-            // Space::with_height(8),
             table,
-            // Space::with_height(16),
             graphs,
             Space::with_height(4),
             alerts,
-            // Space::with_height(4),
             sugg
         ]
         .spacing(8)
@@ -167,7 +161,6 @@ impl ProcMonApp {
         let dt = now.duration_since(self.last_ts).as_secs_f32().max(0.001);
         self.last_ts = now;
 
-        // System graphs
         let total_cpu = self.sys.global_cpu_info().cpu_usage();
         let used_mem = self.sys.used_memory();
         let total_mem = self.sys.total_memory().max(1);
@@ -190,7 +183,6 @@ impl ProcMonApp {
         self.graphs.net_rx.push(net_rx_bps as f32);
         self.graphs.net_tx.push(net_tx_bps as f32);
 
-        // Process table
         let mut rows: Vec<ProcRow> = Vec::with_capacity(self.sys.processes().len());
         for (pid, proc_) in self.sys.processes() {
             let pid_i32 = pid.as_u32() as i32;
@@ -227,7 +219,6 @@ impl ProcMonApp {
         }
         self.procs = rows;
 
-        // Suggestions
         self.suggestions = make_suggestions(
             &self.procs,
             if self.settings.alerts_on_cpu { total_cpu } else { 0.0 },

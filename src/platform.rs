@@ -1,7 +1,6 @@
 #[cfg(target_family = "unix")]
 use std::process::Command;
 
-
 #[cfg(target_family = "windows")]
 use windows_sys::Win32::{
     Foundation::{CloseHandle, HANDLE},
@@ -45,7 +44,6 @@ fn get_threads_in_process(pid: i32) -> std::io::Result<Vec<u32>> {
 
     Ok(threads)
 }
-
 
 #[cfg(target_family = "unix")]
 pub fn kill(pid: i32) -> std::io::Result<()> {
@@ -143,7 +141,6 @@ pub fn kill(pid: i32) -> std::io::Result<()> {
     Ok(())
 }
 
-// Windows stubs for now - can be implemented later
 #[cfg(target_family = "windows")]
 pub fn suspend(pid: i32) -> std::io::Result<()> {
     let threads = get_threads_in_process(pid)?;
@@ -158,7 +155,6 @@ pub fn suspend(pid: i32) -> std::io::Result<()> {
     }
     Ok(())
 }
-
 
 #[cfg(target_family = "windows")]
 pub fn resume(pid: i32) -> std::io::Result<()> {
