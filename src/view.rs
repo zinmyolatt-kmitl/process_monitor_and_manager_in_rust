@@ -167,9 +167,9 @@ pub fn suggestions_view<'a>(suggestions: &[Suggestion]) -> Element<'a, Message> 
             let color = if s.title.contains("CPU") {
                 Color::from_rgb(1.0, 0.4, 0.4)
             } else if s.title.contains("Idle") {
-                Color::from_rgb(1.0, 0.8, 0.4)
-            } else if s.title.contains("Memory") {
                 Color::from_rgb(0.6, 0.6, 1.0)
+            } else if s.title.contains("Memory") {
+                Color::from_rgb(1.0, 0.8, 0.4)
             } else {
                 Color::from_rgb(0.9, 0.9, 0.9)
             };
@@ -177,9 +177,9 @@ pub fn suggestions_view<'a>(suggestions: &[Suggestion]) -> Element<'a, Message> 
             let bg_color = if s.title.contains("CPU") {
                 Color::from_rgb(0.25, 0.1, 0.1)
             } else if s.title.contains("Idle") {
-                Color::from_rgb(0.25, 0.2, 0.1)
-            } else if s.title.contains("Memory") {
                 Color::from_rgb(0.15, 0.15, 0.25)
+            } else if s.title.contains("Memory") {
+                Color::from_rgb(0.25, 0.2, 0.1)
             } else {
                 Color::from_rgb(0.2, 0.2, 0.2)
             };
