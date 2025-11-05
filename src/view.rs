@@ -4,6 +4,7 @@ use crate::models::{Message, ProcRow, SettingsModel, SortDir, SortKey, Suggestio
 use crate::styles::*;
 use crate::util::fmt_bytes;
 
+
 pub fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a, Message> {
     let mut caption = label.to_string();
     if s.sort_key == key {
@@ -12,7 +13,7 @@ pub fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a,
             SortDir::Desc => " ↓",
         });
     }
-    button(text(caption).size(14))
+    button(text(caption).size(14).shaping(text::Shaping::Advanced))
         .on_press(Message::SortBy(key))
         .width(Length::Fill)
         .into()
