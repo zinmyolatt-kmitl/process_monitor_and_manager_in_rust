@@ -26,6 +26,7 @@ pub struct ProcMonApp {
     graphs: SystemGraphs,
     settings: SettingsModel,
     suggestions: Vec<Suggestion>,
+    dot_phase: usize,
 }
 
 impl Application for ProcMonApp {
@@ -59,6 +60,7 @@ impl Application for ProcMonApp {
                 ..Default::default()
             },
             suggestions: Vec::new(),
+            dot_phase: 0,
         };
 
         app.refresh_now();
@@ -71,7 +73,10 @@ impl Application for ProcMonApp {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::Tick => self.refresh_now(),
+            Message::Tick => {
+                self.refresh_now();
+                self.dot_phase = (self.dot_phase + 1) % 4;
+            },
             Message::FilterChanged(s) => self.settings.filter = s,
             Message::SortBy(k) => {
                 if self.settings.sort_key == k {
@@ -108,7 +113,7 @@ impl Application for ProcMonApp {
     fn view(&self) -> Element<'_, Self::Message> {
         let controls = controls_row(&self.settings);
         let header = table_header(&self.settings);
-        let top = top_bar(self.procs.len());
+        let top = top_bar(self.procs.len(), self.dot_phase);
 
         // Process rows
         let rows = self.filtered_sorted_rows()

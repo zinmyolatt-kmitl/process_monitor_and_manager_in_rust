@@ -74,20 +74,33 @@ pub fn table_header<'a>(settings: &SettingsModel) -> Element<'a, Message> {
     .into()
 }
 
-pub fn top_bar<'a>(proc_count: usize) -> Element<'a, Message> {
+pub fn top_bar<'a>(proc_count: usize, dot_phase: usize) -> Element<'a, Message> {
+    let dots = ".".repeat(dot_phase);
+    let status_text = format!("{} Processes currently running", proc_count);
+
+    let dot_display = text(format!("{:<3}", dots))
+        .size(16)
+        .style(Color::from_rgb(1.0, 1.0, 0.0))
+        .font(iced::Font::MONOSPACE);
+
     row![
         text("ProcDeck – Process Monitor & Manager")
             .size(23)
             .style(Color::from_rgb(0.6, 0.8, 1.0)),
         Space::with_width(Length::Fill),
-        text(format!("{} Processes currently running...", proc_count))
-            .size(16)
-            .style(Color::from_rgb(1.0, 1.0, 0.0)),
+        row![
+            text(status_text)
+                .size(16)
+                .style(Color::from_rgb(1.0, 1.0, 0.0)),
+            dot_display,
+        ]
+        .spacing(2)
     ]
     .align_items(Alignment::Center)
-    .padding([8, 12])
+    .padding([8, 30])
     .into()
 }
+
 
 pub fn process_row<'a>(p: &ProcRow) -> Element<'a, Message> {
     #[cfg(target_os = "windows")]
