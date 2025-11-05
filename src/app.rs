@@ -13,7 +13,26 @@ use crate::util;
 use util::fmt_bytes;
 
 const TICK: Duration = Duration::from_millis(700);
-const GRAPH_POINTS: usize = 120; // ~84 seconds at 700ms
+const GRAPH_POINTS: usize = 120;
+
+struct StaticBg {
+    bg: Color,
+}
+
+impl container::StyleSheet for StaticBg {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(Background::Color(self.bg)),
+            border: iced::Border {
+                radius: 6.0.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+}
 
 
 struct StartButton;
@@ -512,24 +531,63 @@ impl Application for ProcMonApp {
         .align_items(Alignment::Center);
 
         let sugg: Element<'_, Message> = if self.suggestions.is_empty() {
-            container(text("No suggestions. System looks calm.").size(16))
-                .padding(8)
-                .into()
-        } else {
-            let items = self.suggestions.iter().map(|s| {
-                container(column![text(&s.title).size(16), text(&s.detail).size(14)])
-                    .padding(8)
-                    .into()
-            });
-            
-            container(
-                scrollable(column(items).spacing(8))
-                    .height(Length::Fixed(180.0))
-                    .width(Length::Fill)
-            )
-            .width(Length::Fill) 
-            .into()
-        };
+    container(
+        text("No suggestions. System looks calm.")
+            .size(16)
+            .style(Color::from_rgb(0.4, 0.85, 0.4)),
+    )
+    .padding(8)
+    .into()
+} else {
+    let items = self.suggestions.iter().map(|s| {
+    // Pick text color
+    let color = if s.title.contains("CPU") {
+        Color::from_rgb(1.0, 0.4, 0.4) // red for CPU alerts
+    } else if s.title.contains("Memory") {
+        Color::from_rgb(1.0, 0.8, 0.4) // orange for memory
+    } else if s.title.contains("Idle") {
+        Color::from_rgb(0.6, 0.6, 1.0) // blue for idle
+    } else {
+        Color::from_rgb(0.9, 0.9, 0.9) // default light gray
+    };
+
+    // Pick background color (must come before container!)
+    let bg_color = if s.title.contains("CPU") {
+        Color::from_rgb(0.25, 0.1, 0.1)
+    } else if s.title.contains("Memory") {
+        Color::from_rgb(0.25, 0.2, 0.1)
+    } else if s.title.contains("Idle") {
+        Color::from_rgb(0.15, 0.15, 0.25)
+    } else {
+        Color::from_rgb(0.2, 0.2, 0.2)
+    };
+
+    container(
+        column![
+            text(&s.title)
+                .size(16)
+                .style(color),
+            text(&s.detail)
+                .size(14)
+                .style(Color::from_rgb(0.8, 0.8, 0.8)),
+        ]
+        .spacing(2),
+    )
+    .padding([8, 10])
+    .style(iced::theme::Container::Custom(Box::new(StaticBg { bg: bg_color })))
+    .into()
+});
+
+
+    container(
+        scrollable(column(items).spacing(8))
+            .height(Length::Fixed(180.0))
+            .width(Length::Fill),
+    )
+    .width(Length::Fill)
+    .into()
+};
+
 
         container(
         column![
@@ -754,7 +812,7 @@ impl ProcMonApp {
 
 fn make_suggestions(rows: &[ProcRow], total_cpu: f32, mem_pct: f32) -> Vec<Suggestion> {
     let mut out = Vec::new();
-    if total_cpu > 80.0 {
+    if total_cpu > 10.0 {
         if let Some(top) = rows.iter().max_by(|a, b| a.cpu.total_cmp(&b.cpu)) {
             out.push(Suggestion {
                 title: format!("High CPU: {} at {:.1}%", top.name, top.cpu),
