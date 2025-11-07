@@ -1,7 +1,7 @@
 # ProcDeck – Process Monitor & Manager
 
 **ProcDeck** is a cross-platform system process monitor and manager built with **Rust** and the **Iced GUI framework**.
-It provides real-time system insights and control over processes through a clean, modern interface.
+It provides real-time system insights and controls over processes through a clean, modern interface.
 
 ---
 
@@ -216,8 +216,8 @@ sudo apt-get install build-essential pkg-config
 
 ### Runtime Issues
 
-| Issue                                      | Solution                                                                   |
-| ------------------------------------------ | -------------------------------------------------------------------------- |
+| Issue                                      | Solution                                                   |
+| ------------------------------------------------------------------------------------------------------- | 
 | **Access Denied** when suspending/resuming | Run as Administrator (Windows) or with `sudo` (macOS/Linux)                |
 | **High CPU usage**                         | Normal on startup; adjust `TICK` duration in `app.rs` (default: 700 ms)    |
 | **Graphs not updating**                    | Ensure `sysinfo` can access system metrics; some need elevated permissions |
@@ -269,7 +269,6 @@ procdeck/
 * **Zin Myo Latt** 
 * **Chan Myae San** 
 * **Arkar Zaw Htet** 
-
 
 
 ---
