@@ -12,7 +12,7 @@ pub fn sortable<'a>(label: &str, key: SortKey, s: &SettingsModel) -> Element<'a,
             SortDir::Desc => " ↓",
         });
     }
-    button(text(caption).size(14))
+    button(text(caption).size(14).shaping(text::Shaping::Advanced))
         .on_press(Message::SortBy(key))
         .width(Length::Fill)
         .into()
@@ -213,12 +213,10 @@ pub fn suggestions_view<'a>(suggestions: &[Suggestion]) -> Element<'a, Message> 
             .into()
         });
 
-        // Calculate height based on number of suggestions
         let suggestion_height = 60.0;
         let spacing = 8.0;
         let num_suggestions = suggestions.len();
         
-        // Show 3 suggestions without scrollbar, scroll on 4+
         let container_height = if num_suggestions <= 3 {
             Length::Shrink
         } else {

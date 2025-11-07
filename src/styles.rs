@@ -108,7 +108,6 @@ impl text_input::StyleSheet for RoundedTextInput {
     }
 }
 
-// Base trait for shared rounded look
 pub trait RoundedBase {
     fn base(&self, color: Color) -> button::Appearance {
         button::Appearance {
