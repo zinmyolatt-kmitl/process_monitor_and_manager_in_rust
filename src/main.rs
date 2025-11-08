@@ -12,6 +12,7 @@ use app::ProcMonApp;
 use iced::Application;
 
 fn main() -> iced::Result {
+    // customized for unix display scale
     #[cfg(target_family = "unix")]
     std::env::set_var("WINIT_X11_SCALE_FACTOR", "1.27");
 

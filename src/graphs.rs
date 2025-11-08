@@ -1,12 +1,15 @@
+// This file creates small line charts for graphs
 use std::collections::VecDeque;
 use iced::{Color, Element, Length, Rectangle, Theme};
 use iced::widget::{column, container, text};
 use iced_widget::canvas::{self, Frame, Stroke};
 use crate::models::{GraphSeries, Message};
 
+// creates a label graph widget
 pub fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Element<'a, Message> {
     struct Plot<'a>(&'a VecDeque<f32>, Color);
 
+    // this implements the canvas drawing
     impl<'a> canvas::Program<Message> for Plot<'a> {
         type State = ();
 
@@ -18,12 +21,14 @@ pub fn sparkline<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Elem
             bounds: Rectangle,
             _cursor: iced::mouse::Cursor,
         ) -> Vec<canvas::Geometry> {
+            // this creates a drawing frame with w and h
             let mut frame = Frame::new(renderer, bounds.size());
             let w = bounds.width;
             let h = bounds.height;
             let data = self.0;
 
             if data.len() >= 2 {
+                // finds max
                 let max = data.iter().cloned().fold(1.0, f32::max);
                 let step = w / (data.len().saturating_sub(1) as f32);
                 let mut builder = iced_widget::canvas::path::Builder::new();
@@ -66,7 +71,7 @@ pub fn graph_card<'a>(label: &str, series: &'a GraphSeries, color: Color) -> Ele
     
     container(sparkline_widget)
         .padding(12)
-        .width(Length::FillPortion(1))
+        .width(Length::FillPortion(1)) // multiple cards share space equally
         .style(|_theme: &Theme| {
             container::Appearance {
                 background: Some(iced::Background::Color(Color::from_rgb(0.25, 0.25, 0.25))),

@@ -1,5 +1,8 @@
+// This file defines data structure and types
+
 use std::collections::VecDeque;
 
+// how many data points to display in graphs
 pub const GRAPH_POINTS: usize = 120;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +33,7 @@ impl Default for SortDir {
     }
 }
 
+// application events
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
@@ -46,7 +50,7 @@ pub enum Message {
     MemAlertChanged(bool),
 }
 
-// -------- Models --------
+// alert thresholds for notifications
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct Thresholds {
     pub cpu_percent: u8,
@@ -59,6 +63,7 @@ pub struct Suggestion {
     pub detail: String,
 }
 
+// application configuration
 #[derive(Debug, Clone, Default)]
 pub struct SettingsModel {
     pub filter: String,
@@ -70,20 +75,22 @@ pub struct SettingsModel {
     pub thresholds: Thresholds,
 }
 
+// time series for graph
 #[derive(Debug, Clone, Default)]
 pub struct GraphSeries {
-    pub points: VecDeque<f32>,
+    pub points: VecDeque<f32>, // double ended queue
 }
 
 impl GraphSeries {
     pub fn push(&mut self, v: f32) {
         if self.points.len() >= GRAPH_POINTS {
-            self.points.pop_front();
+            self.points.pop_front(); // remove oldest point
         }
-        self.points.push_back(v);
+        self.points.push_back(v); // add newest point
     }
 }
 
+// graphs
 #[derive(Debug, Clone, Default)]
 pub struct SystemGraphs {
     pub cpu: GraphSeries,
@@ -94,6 +101,7 @@ pub struct SystemGraphs {
     pub net_tx: GraphSeries,
 }
 
+// process row
 #[derive(Debug, Clone, Default)]
 pub struct ProcRow {
     pub pid: i32,
@@ -104,6 +112,7 @@ pub struct ProcRow {
     pub write_bps: u64,
 }
 
+// for calculating I/O rates
 #[derive(Debug, Default, Clone, Copy)]
 pub struct IoSnapshot {
     pub read: u64,

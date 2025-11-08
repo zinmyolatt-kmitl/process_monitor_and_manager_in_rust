@@ -1,3 +1,5 @@
+// this file is a container with custom background
+
 use iced::{Color, Background};
 use iced::widget::{button, container, text_input};
 
@@ -108,6 +110,7 @@ impl text_input::StyleSheet for RoundedTextInput {
     }
 }
 
+// shared traits for buttons
 pub trait RoundedBase {
     fn base(&self, color: Color) -> button::Appearance {
         button::Appearance {

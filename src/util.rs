@@ -1,3 +1,4 @@
+// format bytes to human readable
 pub fn fmt_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut size = bytes as f64;

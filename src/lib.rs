@@ -1,3 +1,4 @@
+// Declares all public modules
 pub mod app;
 pub mod models;
 pub mod styles;
